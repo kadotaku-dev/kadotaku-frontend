@@ -1,0 +1,13 @@
+<script>
+const USERNAME = "kadotaku";
+const PASSWORD = "anime123";
+
+let user = prompt("Login :");
+let pass = prompt("Mot de passe :");
+
+if(user === USERNAME && pass === PASSWORD){
+    window.location.href = "site.html";
+} else {
+    document.body.innerHTML = "<h1>Accès refusé</h1>";
+}
+</script>
