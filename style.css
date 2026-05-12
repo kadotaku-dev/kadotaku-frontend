@@ -38,7 +38,7 @@ body{
 
     inset:0;
 
-    background-image:url("bandeau_fond.png");
+    background-image:url("/bandeau_fond.png");
 
     background-size:cover;
 
