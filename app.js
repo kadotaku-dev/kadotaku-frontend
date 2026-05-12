@@ -173,13 +173,15 @@ async function loadData(){
         .filter(Boolean)
     )].sort();
 
-    console.time("FIRST_RENDER");
+        console.time("FIRST_RENDER");
 
-    startSearch();
+        handleLicenceRoute();
 
-    console.timeEnd("FIRST_RENDER");
+        startSearch();
 
-    setTimeout(()=>{
+        console.timeEnd("FIRST_RENDER");
+
+        setTimeout(()=>{
 
         console.time("MENUS");
 
@@ -1513,5 +1515,50 @@ sidebar.addEventListener('scroll',()=>{
         sidebarBackToTop.style.display = 'none';
     }
 });
+
+function handleLicenceRoute(){
+
+    const path =
+        window.location.pathname;
+
+    if(!path.startsWith('/licence/')){
+        return;
+    }
+
+    const slug = path
+        .split('/licence/')[1]
+        ?.toLowerCase();
+
+    if(!slug){
+        return;
+    }
+
+    const licence = allAnime.find(l=>
+
+        l.toLowerCase()
+            .replaceAll(' ','-')
+        === slug
+    );
+
+    if(!licence){
+        return;
+    }
+
+    clearMainFilters();
+
+    selectedLicences = [licence];
+
+    document
+        .querySelectorAll(
+            '.licence-checkbox'
+        )
+        .forEach(i=>{
+
+            i.checked =
+                i.value === licence;
+        });
+
+    startSearch();
+}
 
 loadData();
