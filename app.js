@@ -1546,8 +1546,6 @@ function handleLicenceRoute(){
 
     clearMainFilters();
 
-    selectedLicences = [licence];
-
     document
         .querySelectorAll(
             '.licence-checkbox'
@@ -1556,6 +1554,8 @@ function handleLicenceRoute(){
 
             i.checked =
                 i.value === licence;
+
+            togglePersos(i);
         });
 
     startSearch();
