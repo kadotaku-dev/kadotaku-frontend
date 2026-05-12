@@ -173,29 +173,29 @@ async function loadData(){
         .filter(Boolean)
     )].sort();
 
-        console.time("FIRST_RENDER");
+console.time("FIRST_RENDER");
 
-        handleLicenceRoute();
+startSearch();
 
-        startSearch();
+console.timeEnd("FIRST_RENDER");
 
-        console.timeEnd("FIRST_RENDER");
+setTimeout(()=>{
 
-        setTimeout(()=>{
+    console.time("MENUS");
 
-        console.time("MENUS");
+    buildSidebar();
 
-        buildSidebar();
+    buildTopMenus();
 
-        buildTopMenus();
-        
-        updateFavoritesButton();
+    handleLicenceRoute();
+    
+    updateFavoritesButton();
 
-        console.timeEnd("MENUS");
+    console.timeEnd("MENUS");
 
-        console.timeEnd("TOTAL");
+    console.timeEnd("TOTAL");
 
-    },0);
+},0);
 }
 
 /* SIDEBAR */
