@@ -1558,6 +1558,19 @@ function handleLicenceRoute(){
             togglePersos(i);
         });
 
+    document.title =
+        `Idées cadeaux ${licence} | Kadotaku`;
+
+    document
+        .getElementById(
+            'metaDescription'
+        )
+        .setAttribute(
+            'content',
+
+            `Découvrez les meilleures idées cadeaux ${licence} : figurines, mugs, peluches et goodies pour fans d’animes et mangas.`
+        );
+        
     startSearch();
 }
 
