@@ -130,6 +130,60 @@ function parseCSV(text){
 
 /* LOAD */
 
+function setupMobileLabels(){
+
+    if(window.innerWidth > 768){
+        return;
+    }
+
+    setTimeout(()=>{
+
+        const menuItems =
+            document.querySelectorAll(
+                '.menu-item'
+            );
+
+        if(menuItems[0]){
+
+            menuItems[0]
+                .childNodes[0]
+                .textContent =
+                'Type ▼';
+        }
+
+        if(menuItems[1]){
+
+            menuItems[1]
+                .childNodes[0]
+                .textContent =
+                'Licence ▼';
+        }
+
+        const waifu =
+            document.querySelector(
+                '.waifu-button'
+            );
+
+        if(waifu){
+
+            waifu.innerText =
+                'Waifu';
+        }
+
+        const fav =
+            document.querySelector(
+                '.favorites-toggle'
+            );
+
+        if(fav){
+
+            fav.innerText =
+                '❤️';
+        }
+
+    },100);
+}
+
 async function loadData(){
 
     console.time("TOTAL");
@@ -186,6 +240,12 @@ setTimeout(()=>{
     buildSidebar();
 
     buildTopMenus();
+    
+    setTimeout(()=>{
+
+        setupMobileLabels();
+
+    },300);
 
     handleLicenceRoute();
     

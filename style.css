@@ -1350,26 +1350,43 @@ body{
         order:1;
 
         width:100%;
+
+        margin-top:-8px;
     }
 
     .main-title{
 
-        font-size:16px !important;
+    font-size:13px !important;
 
-        line-height:1.25 !important;
+    line-height:1.1 !important;
 
-        text-align:center;
+    text-align:center;
 
-        padding:0 20px;
+    padding:0 12px;
 
-        margin:0 auto;
+    margin:0 auto;
 
-        max-width:340px;
-    }
+    max-width:320px;
+}
 
     /* BLOCS HAUT */
 
-    .main-header-left,
+    .main-header-left{
+
+        width:100%;
+
+        display:grid !important;
+
+        grid-template-columns:
+        1.2fr 1.2fr 1fr 0.7fr;
+
+        gap:6px;
+
+        align-items:stretch;
+
+        order:2;
+    }
+
     .main-header-right{
 
         width:100%;
@@ -1381,13 +1398,7 @@ body{
         gap:10px;
 
         align-items:stretch;
-    }
 
-    .main-header-left{
-        order:2;
-    }
-
-    .main-header-right{
         order:3;
     }
 
@@ -1398,6 +1409,37 @@ body{
     .favorites-toggle{
 
         width:100%;
+    }
+
+    .main-header-left button,
+    .main-header-left .menu-item{
+
+    font-size:12px;
+
+    white-space:nowrap;
+
+    height:42px;
+
+    border-radius:12px;
+
+    line-height:4px;
+
+    text-align:center;
+
+    padding:0;
+}
+
+.main-header-left .menu-item .dropdown{
+
+    line-height:normal;
+}
+
+    .main-header-left .waifu-button,
+    .main-header-left .favorites-toggle{
+
+        height:42px;
+
+        border-radius:12px;
     }
 
     /* RECHERCHE + TRI */
@@ -1438,6 +1480,8 @@ body{
         display:block;
 
         width:100%;
+
+        margin-top:2px !important;
     }
 
     .sidebar{
@@ -1545,31 +1589,43 @@ body{
     .hero-spacer{
         display:none;
     }
-}
+    }
 
-.search-container,
-.sort-select{
+    .search-container,
+    .sort-select{
 
-    width:100% !important;
-}
+        width:100% !important;
+    }
 
-.search-input,
-.sort-select{
+    .search-input,
+    .sort-select{
 
-    height:42px !important;
+        height:42px !important;
 
-    padding:0 12px !important;
+        padding:0 12px !important;
 
-    font-size:13px;
-}
+        font-size:13px;
+    }
 
-.main-header-right{
+    .main-header-right{
 
-    grid-template-columns:1fr 1fr !important;
-}
+        grid-template-columns:1fr 1fr !important;
+    }
 
-.active-filters,
-.clear-all-filters{
+    .active-filters,
+    .clear-all-filters{
 
-    display:none !important;
-}
+        display:none !important;
+    }
+
+    .main-header-left .menu-item{
+
+    display:flex;
+
+    justify-content:center;
+
+    text-align:center;
+
+    padding-top:18px;
+    }
+
