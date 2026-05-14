@@ -1429,7 +1429,7 @@ body{
     padding:0;
 }
 
-.main-header-left .menu-item .dropdown{
+    .main-header-left .menu-item .dropdown{
 
     line-height:normal;
 }
@@ -1626,5 +1626,6 @@ body{
     text-align:center;
 
     padding-top:18px;
+    }
     }
 
