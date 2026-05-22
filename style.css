@@ -1541,12 +1541,12 @@ body{
 }
 
 .licence-card img{
-
     width:100%;
-
     display:block;
-
     border-radius:18px;
+    background:#111827;
+    aspect-ratio:3 / 2;
+    object-fit:cover;
 }
 
 .licence-card-title{

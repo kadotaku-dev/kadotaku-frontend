@@ -495,9 +495,12 @@ function buildLicenceCards(){
             >
 
                 <img
-                    src="/cards/Card ${licence}.webp"
+                    src="/cards/thumbs/Card ${licence}.webp"
                     alt="${licence}"
                     loading="lazy"
+                    decoding="async"
+                    width="384"
+                    height="256"
                 >
 
                 <div class="licence-card-title">
