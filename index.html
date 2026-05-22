@@ -5,15 +5,16 @@
 
 <meta charset="UTF-8">
 
+<meta property="og:site_name" content="Kadotaku">
+
 <title>
-Kadotaku - Idées cadeaux anime et manga
+Kadotaku | La référence des cadeaux anime et manga
 </title>
 
 <meta
     id="metaDescription"
     name="description"
-    content="Kadotaku : les meilleures idées cadeaux anime, manga et otaku. Figurines, mugs, peluches, goodies et produits dérivés pour fans d’animes et mangas."
->
+content="Découvrez les meilleures idées cadeaux anime et manga : figurines, goodies, peluches, mugs, posters et produits dérivés pour fans d’animes et univers otaku.">
 
 <meta
     name="viewport"
@@ -24,6 +25,30 @@ Kadotaku - Idées cadeaux anime et manga
     href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap"
     rel="stylesheet"
 >
+
+<link rel="canonical" href="https://kadotaku.fr/">
+
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Kadotaku",
+  "alternateName": "Kadotaku.fr",
+  "url": "https://kadotaku.fr/",
+  "description": "La référence des cadeaux anime et manga.",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Kadotaku",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://kadotaku.fr/favicon.png"
+    }
+  }
+}
+</script>
 
 <link rel="stylesheet" href="/style.css">
 
@@ -49,6 +74,34 @@ Kadotaku - Idées cadeaux anime et manga
 <div class="main-header">
 
     <div class="main-header-left">
+
+        <a
+    href="/"
+    class="top-icon-button"
+    title="Accueil"
+>
+
+    <img
+        src="/icons/house.svg"
+        class="topbar-svg-icon"
+        alt="Accueil"
+    >
+
+</a>
+
+<a
+    href="/?page=catalogue"
+    class="top-icon-button"
+    title="Catalogue"
+>
+
+    <img
+        src="/icons/book-text.svg"
+        class="topbar-svg-icon"
+        alt="Catalogue"
+    >
+
+</a>
 
         <div
             class="menu-item"
@@ -82,7 +135,7 @@ Kadotaku - Idées cadeaux anime et manga
             class="waifu-button"
             onclick="toggleWaifuMode()"
         >
-            Mode Waifu Désactivé
+            Mode Waifu
         </button>
         
         <button
@@ -96,9 +149,37 @@ Kadotaku - Idées cadeaux anime et manga
 
     <div class="main-title-wrapper">
 
+    <a
+        href="/"
+        class="top-icon-button mobile-only-icon"
+        title="Accueil"
+    >
+
+        <img
+            src="/icons/house.svg"
+            class="topbar-svg-icon"
+            alt="Accueil"
+        >
+
+    </a>
+
     <div class="main-title">
-    Les meilleures idées cadeaux pour les fans d’animes et mangas
+    La référence cadeau pour tous les fans d'animes et de mangas
     </div>
+
+    <a
+    href="/?page=catalogue"
+    class="top-icon-button mobile-only-icon"
+    title="Catalogue"
+>
+
+    <img
+        src="/icons/book-text.svg"
+        class="topbar-svg-icon"
+        alt="Catalogue"
+    >
+
+</a>
 
     <div class="filters-wrapper">
 
@@ -165,6 +246,11 @@ Kadotaku - Idées cadeaux anime et manga
 <div class="container">
 
     <div class="sidebar">
+
+        <div
+            id="sidebarPromoCard"
+            class="sidebar-promo-card"
+        ></div>
 
         <div class="sidebar-box">
 
@@ -301,12 +387,26 @@ Kadotaku - Idées cadeaux anime et manga
         ↑
     </div>
 
-    <div class="products">
+<div class="products">
+
+    <button
+    id="licenceCardsSizeToggle"
+    class="licence-cards-size-toggle"
+    onclick="toggleLicenceCardsSize()"
+    title="Changer la taille des cards"
+>
+    ▦
+</button>
 
         <div
-    class="grid"
-    id="productGrid"
->
+            class="licence-cards-grid"
+            id="licenceCardsGrid"
+        ></div>
+
+        <div
+            class="grid"
+            id="productGrid"
+        >
 
     <div class="loading-message">
         Chargement des produits...

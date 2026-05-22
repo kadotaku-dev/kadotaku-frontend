@@ -9,6 +9,9 @@ let allAnime = [];
 let animeData = [];
 let allTypes = [];
 let allResults = [];
+let showAllLicencesSecretMode = false;
+let secretClickCount = 0;
+let secretClickTimer = null;
 
 let waifuMode = false;
 
@@ -22,6 +25,10 @@ let favorites = JSON.parse(
 
 let favoritesMode = false;
 
+let routeLicenceFilter = "";
+
+routeLicenceFilter = "";
+
 function toggleWaifuMode(){
 
     waifuMode = !waifuMode;
@@ -31,18 +38,15 @@ function toggleWaifuMode(){
 
     if(waifuMode){
 
-        button.classList.add('active');
+    button.classList.add('active');
 
-        button.textContent =
-            'Mode Waifu Activé';
+} else {
 
-    } else {
+    button.classList.remove('active');
+}
 
-        button.classList.remove('active');
-
-        button.textContent =
-            'Mode Waifu Désactivé';
-    }
+button.textContent =
+    'Mode Waifu';
 
     startSearch();
 }
@@ -130,60 +134,6 @@ function parseCSV(text){
 
 /* LOAD */
 
-function setupMobileLabels(){
-
-    if(window.innerWidth > 768){
-        return;
-    }
-
-    setTimeout(()=>{
-
-        const menuItems =
-            document.querySelectorAll(
-                '.menu-item'
-            );
-
-        if(menuItems[0]){
-
-            menuItems[0]
-                .childNodes[0]
-                .textContent =
-                'Type ▼';
-        }
-
-        if(menuItems[1]){
-
-            menuItems[1]
-                .childNodes[0]
-                .textContent =
-                'Licence ▼';
-        }
-
-        const waifu =
-            document.querySelector(
-                '.waifu-button'
-            );
-
-        if(waifu){
-
-            waifu.innerText =
-                'Waifu';
-        }
-
-        const fav =
-            document.querySelector(
-                '.favorites-toggle'
-            );
-
-        if(fav){
-
-            fav.innerText =
-                '❤️';
-        }
-
-    },100);
-}
-
 async function loadData(){
 
     console.time("TOTAL");
@@ -211,8 +161,8 @@ async function loadData(){
     animeData.shift();
 
     allAnime = animeData
-        .filter(r => r[2] == "1")
-        .map(r => r[0]);
+    .filter(r => showAllLicencesSecretMode || r[2] == "1")
+    .map(r => r[0]);
 
     console.time("JSON");
 
@@ -229,7 +179,9 @@ async function loadData(){
 
 console.time("FIRST_RENDER");
 
-startSearch();
+if(window.location.pathname !== "/"){
+    startSearch();
+}
 
 console.timeEnd("FIRST_RENDER");
 
@@ -240,12 +192,8 @@ setTimeout(()=>{
     buildSidebar();
 
     buildTopMenus();
-    
-    setTimeout(()=>{
 
-        setupMobileLabels();
-
-    },300);
+    buildLicenceCards();
 
     handleLicenceRoute();
     
@@ -341,9 +289,8 @@ function buildSidebar(){
                         value="${licence}"
 
                         onchange="
-                            togglePersos(this);
-                            startSearch();
-                        "
+    handleSidebarLicenceChange(this);
+"
                     >
 
                     ${licence}
@@ -423,6 +370,153 @@ function togglePersos(checkbox){
     }
 }
 
+function handleSidebarLicenceChange(checkbox){
+
+    togglePersos(checkbox);
+
+    const checkedLicences =
+        [...document.querySelectorAll(
+            '.licence-checkbox:checked'
+        )];
+
+    if(checkedLicences.length === 1){
+
+        goToLicencePage(
+            checkedLicences[0].value
+        );
+
+        return;
+    }
+
+    routeLicenceFilter = "";
+
+    history.replaceState(
+        null,
+        "",
+        window.location.hostname === "127.0.0.1"
+            ? "/?page=catalogue"
+            : "/catalogue"
+    );
+
+    updateSidebarPromoCard("catalogue");
+
+    document
+        .getElementById("licenceCardsGrid")
+        .style.display = "none";
+
+    document
+        .getElementById("productGrid")
+        .style.display = "grid";
+
+    startSearch();
+}
+
+/* LICENCE CARDS */
+
+function expandLicenceCard(event,element){
+
+    event.preventDefault();
+
+    event.stopPropagation();
+
+    const image =
+        decodeURIComponent(
+            element.dataset.image
+        );
+
+    openModal(image);
+
+    return false;
+}
+
+function toggleLicenceCardsSize(){
+
+    const grid =
+        document.getElementById(
+            "licenceCardsGrid"
+        );
+
+    if(!grid){
+        return;
+    }
+
+    grid.classList.toggle("compact");
+}
+
+function buildLicenceCards(){
+
+    const grid =
+        document.getElementById(
+            "licenceCardsGrid"
+        );
+
+    if(!grid){
+        return;
+    }
+
+    grid.innerHTML = "";
+
+    const licences = animeData
+
+        .filter(r =>
+            r[0] &&
+            (
+                showAllLicencesSecretMode ||
+                r[2] == "1"
+            )
+        )
+
+        .sort((a,b)=>{
+
+            const favA = Number(a[1]) || 9999;
+            const favB = Number(b[1]) || 9999;
+
+            if(favA !== favB){
+                return favA - favB;
+            }
+
+            return a[0].localeCompare(
+                b[0],
+                'fr',
+                {sensitivity:'base'}
+            );
+        })
+
+        .map(r => r[0]);
+
+    licences.forEach(licence=>{
+
+        grid.innerHTML += `
+
+            <a
+                href="/?licence=${encodeURIComponent(licence)}"
+                class="licence-card"
+                title="${licence}"
+            >
+
+                <img
+                    src="/cards/Card ${licence}.webp"
+                    alt="${licence}"
+                    loading="lazy"
+                >
+
+                <div class="licence-card-title">
+                    ${licence}
+                </div>
+
+                <span
+                    class="licence-card-expand"
+                    data-image="${encodeURIComponent(`/cards/Card ${licence}.webp`)}"
+                    onclick="return expandLicenceCard(event,this);"
+                >
+                    🔍
+                </span>
+
+            </a>
+        `;
+    });
+}
+
 /* TOP MENUS */
 
 function buildTopMenus(){
@@ -432,6 +526,15 @@ function buildTopMenus(){
 
     const licencesDropdown =
         document.getElementById("licencesDropdown");
+
+        typesDropdown.innerHTML = `
+    <div class="dropdown-scroll"></div>
+`;
+
+const typesDropdownScroll =
+    typesDropdown.querySelector(
+        ".dropdown-scroll"
+    );
 
     allTypes.forEach(type=>{
 
@@ -490,7 +593,7 @@ function buildTopMenus(){
               `;
         });
 
-        typesDropdown.innerHTML += `
+        typesDropdownScroll.innerHTML += `
 
             <div class="dropdown-item">
 
@@ -525,6 +628,14 @@ function buildTopMenus(){
         `;
     });
 
+licencesDropdown.innerHTML = `
+    <div class="dropdown-scroll"></div>
+`;
+
+const licencesDropdownScroll =
+    licencesDropdown.querySelector(
+        ".dropdown-scroll"
+    );
 
 [
     ...getSortedLicences().priority,
@@ -569,7 +680,7 @@ function buildTopMenus(){
             `;
         });
 
-        licencesDropdown.innerHTML += `
+        licencesDropdownScroll.innerHTML += `
 
             <div class="dropdown-item">
 
@@ -686,9 +797,11 @@ const priority =
 
     const alphabeticalLicences =
 
-        [...licencesMap.values()]
+    [...licencesMap.values()]
 
-        .sort((a,b)=>
+    .filter(l => l.priority === 999999)
+
+    .sort((a,b)=>
 
             a.name.localeCompare(
                 b.name,
@@ -720,6 +833,12 @@ function normalizeText(text){
         .trim()
 
         .toLowerCase();
+}
+
+function normalizeLicenceKey(text){
+
+    return normalizeText(text)
+        .replace(/[^a-z0-9]/g,"");
 }
 
 /* QUICK FILTERS */
@@ -760,6 +879,25 @@ function clearMainFilters(){
 
 function clearAllFilters(){
 
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    if(
+        window.location.pathname.startsWith("/licence/") ||
+        params.get("licence")
+    ){
+        window.location.href =
+            window.location.hostname === "127.0.0.1"
+
+            ? "/?page=catalogue"
+
+            : "/catalogue";
+
+        return;
+    }
+
     clearMainFilters();
 
     waifuMode = false;
@@ -773,6 +911,23 @@ function clearAllFilters(){
 
     button.textContent =
         'Mode Waifu Désactivé';
+
+    quickBudgetCheckboxes.forEach(b=>{
+
+    document.getElementById(
+        b.id
+    ).checked = false;
+    });
+
+    minSlider.value = 1;
+
+    maxSlider.value = 500;
+
+    updatePriceDisplay();
+
+    favoritesMode = false;
+
+    updateFavoritesButton();
 
     startSearch();
 }
@@ -809,28 +964,23 @@ function quickType(type){
     closeTopMenus();
 }
 
+function goToLicencePage(licence){
+
+    const slug = licence
+        .toLowerCase()
+        .replaceAll(" ","-");
+
+    window.location.href =
+        window.location.hostname === "127.0.0.1"
+
+        ? `/?licence=${encodeURIComponent(licence)}`
+
+        : `/licence/${slug}`;
+}
+
 function quickLicence(licence){
 
-    
-    clearMainFilters();
-    
-    quickTopType = "";
-
-    document
-        .querySelectorAll(
-            '.licence-checkbox'
-        )
-
-        .forEach(i => {
-
-            i.checked =
-                normalizeText(i.value) === normalizeText(licence)
-
-            togglePersos(i);
-        });
-
-    startSearch();
-    closeTopMenus();
+    goToLicencePage(licence);
 }
 
 function quickPerso(licence,perso){
@@ -879,17 +1029,167 @@ function updateActiveFilters(){
 
     container.innerHTML = '';
 
+    const displayedFilters =
+        new Set();
+
+    function addFilterTag(key,html){
+
+        if(displayedFilters.has(key)){
+            return;
+        }
+
+        displayedFilters.add(key);
+
+        container.innerHTML += html;
+    }
+
     if(quickTopType){
 
-        container.innerHTML += `
+        addFilterTag(
+            'type:' + quickTopType,
+            `
+                <div class="filter-tag">
+
+                    ${quickTopType}
+
+                    <span
+                        class="filter-remove"
+                        onclick="
+                            quickTopType='';
+                            startSearch();
+                        "
+                    >
+                        ✕
+                    </span>
+
+                </div>
+            `
+        );
+    }
+
+    const selectedTypes =
+        [...document.querySelectorAll(
+            '#typeList input:checked'
+        )];
+
+    const selectedLicences =
+        [...document.querySelectorAll(
+            '.licence-checkbox:checked'
+        )];
+
+    const selectedPersos =
+        [...document.querySelectorAll(
+            '.perso-checkbox:checked'
+        )];
+
+    selectedTypes.forEach(i=>{
+
+        addFilterTag(
+            'type:' + i.value,
+            `
+                <div class="filter-tag">
+
+                    ${i.value}
+
+                    <span
+                        class="filter-remove"
+                        data-value="${encodeURIComponent(i.value)}"
+                        onclick="
+                            removeFilter(
+                                'type',
+                                decodeURIComponent(
+                                    this.dataset.value
+                                )
+                            )
+                        "
+                    >
+                        ✕
+                    </span>
+
+                </div>
+            `
+        );
+    });
+
+    selectedLicences.forEach(i=>{
+
+        addFilterTag(
+            'licence:' + i.value,
+            `
+                <div class="filter-tag">
+
+                    ${i.value}
+
+                    <span
+                        class="filter-remove"
+                        data-value="${encodeURIComponent(i.value)}"
+                        onclick="
+                            removeFilter(
+                                'licence',
+                                decodeURIComponent(
+                                    this.dataset.value
+                                )
+                            )
+                        "
+                    >
+                        ✕
+                    </span>
+
+                </div>
+            `
+        );
+    });
+
+    selectedPersos.forEach(i=>{
+
+        addFilterTag(
+            'perso:' + i.dataset.licence + ':' + i.value,
+            `
+                <div class="filter-tag">
+
+                    ${i.value}
+
+                    <span
+                        class="filter-remove"
+                        data-value="${encodeURIComponent(i.value)}"
+                        onclick="
+                            removeFilter(
+                                'perso',
+                                decodeURIComponent(
+                                    this.dataset.value
+                                )
+                            )
+                        "
+                    >
+                        ✕
+                    </span>
+
+                </div>
+            `
+        );
+    });
+
+    const activeQuickBudget =
+    quickBudgetCheckboxes.find(b =>
+        document.getElementById(b.id).checked
+    );
+
+if(activeQuickBudget){
+
+    addFilterTag(
+        'budget',
+        `
             <div class="filter-tag">
 
-                ${quickTopType}
+                Moins de ${activeQuickBudget.value}€
 
                 <span
                     class="filter-remove"
                     onclick="
-                        quickTopType='';
+                        document.getElementById('${activeQuickBudget.id}').checked = false;
+                        minSlider.value = 1;
+                        maxSlider.value = 500;
+                        updatePriceDisplay();
                         startSearch();
                     "
                 >
@@ -897,157 +1197,152 @@ function updateActiveFilters(){
                 </span>
 
             </div>
-        `;
-    }
+        `
+    );
 
-    const selectedTypes =
+} else if(
+    minSlider.value !== "1" ||
+    maxSlider.value !== "500"
+){
 
-        [...document.querySelectorAll(
-            '#typeList input:checked'
-        )];
-
-    const selectedLicences =
-
-        [...document.querySelectorAll(
-            '.licence-checkbox:checked'
-        )];
-
-    const selectedPersos =
-
-        [...document.querySelectorAll(
-            '.perso-checkbox:checked'
-        )];
-
-    selectedTypes.forEach(i=>{
-
-        container.innerHTML += `
+    addFilterTag(
+        'budget',
+        `
             <div class="filter-tag">
 
-                ${i.value}
+                Prix : ${minSlider.value}€ - ${maxSlider.value}€
 
                 <span
                     class="filter-remove"
-
-                    data-value="${encodeURIComponent(i.value)}"
-
                     onclick="
-                        removeFilter(
-                            'type',
-                            decodeURIComponent(
-                                this.dataset.value
-                            )
-                        )
+                        minSlider.value = 1;
+                        maxSlider.value = 500;
+                        updatePriceDisplay();
+                        startSearch();
                     "
                 >
                     ✕
                 </span>
 
             </div>
-        `;
-    });
+        `
+    );
+}
 
-    selectedLicences.forEach(i=>{
+if(favoritesMode){
 
-        container.innerHTML += `
+    addFilterTag(
+        'favorites',
+        `
             <div class="filter-tag">
 
-                ${i.value}
+                Favoris
 
                 <span
                     class="filter-remove"
-
-                    data-value="${encodeURIComponent(i.value)}"
-
                     onclick="
-                        removeFilter(
-                            'licence',
-                            decodeURIComponent(
-                                this.dataset.value
-                            )
-                        )
+                        favoritesMode = false;
+                        updateFavoritesButton();
+                        startSearch();
                     "
                 >
                     ✕
                 </span>
 
             </div>
-        `;
-    });
-
-    selectedPersos.forEach(i=>{
-
-        container.innerHTML += `
-            <div class="filter-tag">
-
-                ${i.value}
-
-                <span
-                    class="filter-remove"
-
-                    data-value="${encodeURIComponent(i.value)}"
-
-                    onclick="
-                        removeFilter(
-                            'perso',
-                            decodeURIComponent(
-                                this.dataset.value
-                            )
-                        )
-                    "
-                >
-                    ✕
-                </span>
-
-            </div>
-        `;
-    });
+        `
+    );
+}
 
     if(waifuMode){
 
-        container.innerHTML += `
-            <div class="filter-tag">
+        addFilterTag(
+            'waifu',
+            `
+                <div class="filter-tag">
 
-                Waifu
+                    Waifu
 
-                <span
-                    class="filter-remove"
-                    onclick="toggleWaifuMode()"
-                >
-                    ✕
-                </span>
+                    <span
+                        class="filter-remove"
+                        onclick="toggleWaifuMode()"
+                    >
+                        ✕
+                    </span>
 
-            </div>
-        `;
+                </div>
+            `
+        );
     }
 
-          const hasFilters =
+    const hasFilters =
+        selectedTypes.length ||
+        selectedLicences.length ||
+        selectedPersos.length ||
+        quickTopType ||
+        waifuMode ||
+        favoritesMode ||
+        activeQuickBudget ||
+        minSlider.value !== "1" ||
+        maxSlider.value !== "500";
 
-          selectedTypes.length ||
-          selectedLicences.length ||
-          selectedPersos.length ||
-          quickTopType ||
-          waifuMode ||
-          favoritesMode;
+    document.getElementById(
+        'clearAllFilters'
+    ).style.display = hasFilters
+        ? 'flex'
+        : 'none';
 
-      document.getElementById(
-          'clearAllFilters'
-      ).style.display = hasFilters
-          ? 'flex'
-          : 'none';
-          
-          document
-    .querySelector(
-        '.main-title-wrapper'
-    )
-    ?.classList.toggle(
-        'has-active-filters',
-        hasFilters
-    );
-    }
+    document
+        .querySelector(
+            '.main-title-wrapper'
+        )
+        ?.classList.toggle(
+            'has-active-filters',
+            hasFilters
+        );
+}
     
 /* SEARCH */
 
+function switchHomeToCatalogueView(){
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    if(
+        window.location.pathname !== "/" ||
+        params.get("page") ||
+        params.get("licence")
+    ){
+        return;
+    }
+
+    const licenceCardsGrid =
+        document.getElementById(
+            "licenceCardsGrid"
+        );
+
+    const productGrid =
+        document.getElementById(
+            "productGrid"
+        );
+
+    updateSidebarPromoCard("catalogue");
+
+    if(licenceCardsGrid){
+        licenceCardsGrid.style.display = "none";
+    }
+
+    if(productGrid){
+        productGrid.style.display = "grid";
+    }
+}
+
 function startSearch(){
+
+    switchHomeToCatalogueView();
 
     const selectedTypes =
 
@@ -1070,6 +1365,20 @@ function startSearch(){
         [...document.querySelectorAll(
             '.perso-checkbox:checked'
         )];
+
+    const displayedFilters =
+            new Set();
+
+    function addFilterTag(key,html){
+
+            if(displayedFilters.has(key)){
+                return;
+            }
+
+            displayedFilters.add(key);
+
+            container.innerHTML += html;
+        }
 
     const searchText =
 
@@ -1090,6 +1399,14 @@ function startSearch(){
         parseFloat(maxSlider.value);
 
     allResults = allProducts.filter(p=>{
+
+                if(
+            routeLicenceFilter &&
+            normalizeLicenceKey(p.licence) !==
+            normalizeLicenceKey(routeLicenceFilter)
+        ){
+            return false;
+        }
 
         if(
             quickTopType &&
@@ -1215,11 +1532,34 @@ function startSearch(){
     });
 
     displayProducts();
-    
+
+    updateSidebarTypeVisibility();
+
     updateActiveFilters();
 }
 
 function removeFilter(type,value){
+
+        if(
+        type === "licence" &&
+        window.location.pathname.startsWith("/licence/")
+    ){
+        window.location.href =
+    window.location.hostname === "127.0.0.1"
+
+    ? "/?page=catalogue"
+
+    : "/catalogue";
+        return;
+    }
+
+    if(
+        type === "licence" &&
+        new URLSearchParams(window.location.search).get("licence")
+    ){
+        window.location.href = "/?page=catalogue";
+        return;
+    }
 
     if(type === 'type'){
 
@@ -1272,6 +1612,39 @@ function removeFilter(type,value){
 }
 
 /* DISPLAY */
+
+function updateSidebarTypeVisibility(){
+
+    const availableTypes =
+        new Set(
+            allResults
+                .map(p => p.type)
+                .filter(Boolean)
+        );
+
+    document
+        .querySelectorAll(
+            '#typeList input'
+        )
+        .forEach(input=>{
+
+            const label =
+                input.closest('label');
+
+            if(!label){
+                return;
+            }
+
+            if(
+                availableTypes.has(input.value) ||
+                input.checked
+            ){
+                label.style.display = "block";
+            } else {
+                label.style.display = "none";
+            }
+        });
+}
 
 function displayProducts(){
 
@@ -1576,62 +1949,469 @@ sidebar.addEventListener('scroll',()=>{
     }
 });
 
+function updateSidebarPromoCard(mode, licence = ""){
+
+    const box =
+        document.getElementById(
+            "sidebarPromoCard"
+        );
+
+    if(!box){
+        return;
+    }
+
+    let image = "";
+
+    let alt = "";
+
+    if(mode === "home"){
+
+        image =
+            "/cards/Bouton accueil.webp";
+
+        alt =
+            "Accueil Kadotaku";
+    }
+
+    else if(mode === "catalogue"){
+
+        image =
+            "/cards/Bouton catalogue.webp";
+
+        alt =
+            "Catalogue Kadotaku";
+    }
+
+    else if(
+        mode === "licence" &&
+        licence
+    ){
+
+        image =
+            `/cards/Card ${licence}.webp`;
+
+        alt =
+            licence;
+    }
+
+    else {
+
+        box.style.display = "none";
+
+        box.innerHTML = "";
+
+        return;
+    }
+
+    box.style.display = "block";
+
+    box.innerHTML = `
+
+        <div
+            style="
+                position:relative;
+            "
+        >
+
+            <img
+                src="${image}"
+                alt="${alt}"
+            >
+
+            <span
+                class="sidebar-promo-expand"
+
+                onclick="
+                    event.preventDefault();
+
+                    event.stopPropagation();
+
+                    openModal('${image}');
+
+                    return false;
+                "
+            >
+                🔍
+            </span>
+
+        </div>
+    `;
+}
+
 function handleLicenceRoute(){
 
     const path =
         window.location.pathname;
 
-    if(!path.startsWith('/licence/')){
-        return;
-    }
-
-    const slug = path
-        .split('/licence/')[1]
-        ?.toLowerCase();
-
-    if(!slug){
-        return;
-    }
-
-    const licence = allAnime.find(l=>
-
-        l.toLowerCase()
-            .replaceAll(' ','-')
-        === slug
-    );
-
-    if(!licence){
-        return;
-    }
-
-    clearMainFilters();
-
-    document
-        .querySelectorAll(
-            '.licence-checkbox'
-        )
-        .forEach(i=>{
-
-            i.checked =
-                i.value === licence;
-
-            togglePersos(i);
-        });
-
-    document.title =
-        `Idées cadeaux ${licence} | Kadotaku`;
-
-    document
-        .getElementById(
-            'metaDescription'
-        )
-        .setAttribute(
-            'content',
-
-            `Découvrez les meilleures idées cadeaux ${licence} : figurines, mugs, peluches et goodies pour fans d’animes et mangas.`
+    const params =
+        new URLSearchParams(
+            window.location.search
         );
-        
+
+    const localLicence =
+        params.get("licence");
+
+    const localPage =
+        params.get("page");
+
+    const licenceCardsGrid =
+        document.getElementById(
+            "licenceCardsGrid"
+        );
+
+    const productGrid =
+        document.getElementById(
+            "productGrid"
+        );
+
+    if(
+        path === "/" &&
+        !localPage &&
+        !localLicence
+    ){
+
+        routeLicenceFilter = "";
+
+        updateSidebarPromoCard("home");
+
+        if(licenceCardsGrid){
+            licenceCardsGrid.style.display = "grid";
+        }
+
+        document.getElementById(
+            "licenceCardsSizeToggle"
+        ).style.display = "block";
+
+        if(productGrid){
+            productGrid.style.display = "none";
+        }
+
+        updateActiveFilters();
+
+        return;
+    }
+
+    if(
+        path === "/catalogue" ||
+        localPage === "catalogue"
+    ){
+
+        routeLicenceFilter = "";
+
+        updateSidebarPromoCard("catalogue");
+
+        if(licenceCardsGrid){
+            licenceCardsGrid.style.display = "none";
+        }
+
+        if(productGrid){
+            productGrid.style.display = "grid";
+        }
+
+        startSearch();
+
+        document.getElementById(
+            "licenceCardsSizeToggle"
+        ).style.display = "none";
+
+        return;
+    }
+
+    let licence = "";
+
+    if(localLicence){
+
+        licence = localLicence;
+
+    } else if(path.startsWith("/licence/")){
+
+        const slug =
+            path
+                .split("/licence/")[1]
+                ?.toLowerCase();
+
+        licence = allAnime.find(l =>
+
+            l.toLowerCase()
+                .replaceAll(" ","-")
+            === slug
+        ) || "";
+    }
+
+    if(licence){
+
+        routeLicenceFilter = licence;
+
+        updateSidebarPromoCard(
+            "licence",
+            licence
+        );
+
+        if(licenceCardsGrid){
+            licenceCardsGrid.style.display = "none";
+        }
+
+        if(productGrid){
+            productGrid.style.display = "grid";
+        }
+
+        clearMainFilters();
+
+        document.getElementById("licenceList").style.display = "block";
+
+        document.getElementById("licenceSidebarToggle").textContent = "−";
+
+        document
+            .querySelectorAll(
+                ".licence-checkbox"
+            )
+            .forEach(i=>{
+
+                i.checked =
+                    normalizeLicenceKey(i.value) ===
+                    normalizeLicenceKey(licence);
+
+                togglePersos(i);
+            });
+
+        startSearch();
+
+        document.getElementById(
+            "licenceCardsSizeToggle"
+        ).style.display = "none";
+
+        return;
+    }
+
+    routeLicenceFilter = "";
+
+    updateSidebarPromoCard("catalogue");
+
+    if(licenceCardsGrid){
+        licenceCardsGrid.style.display = "none";
+    }
+
+    if(productGrid){
+        productGrid.style.display = "grid";
+    }
+
     startSearch();
 }
 
 loadData();
+
+let openSubmenuItem = null;
+let submenuCloseTimeout = null;
+
+function positionTopSubmenu(item,submenu){
+
+    const rect =
+        item.getBoundingClientRect();
+
+    const margin = 8;
+
+    const submenuWidth =
+        submenu.offsetWidth || 220;
+
+    const submenuHeight =
+        submenu.offsetHeight || 320;
+
+    let left =
+        rect.right - 2;
+
+    if(
+        left + submenuWidth + margin >
+        window.innerWidth
+    ){
+        left =
+            Math.max(
+                margin,
+                rect.left - submenuWidth + 2
+            );
+    }
+
+    let top =
+        rect.top;
+
+    if(
+        top + submenuHeight + margin >
+        window.innerHeight
+    ){
+        top =
+            Math.max(
+                margin,
+                window.innerHeight -
+                submenuHeight -
+                margin
+            );
+    }
+
+    submenu.style.left =
+        `${left}px`;
+
+    submenu.style.top =
+        `${top}px`;
+}
+
+function keepTopSubmenuOpen(item){
+
+    clearTimeout(submenuCloseTimeout);
+
+    if(
+        openSubmenuItem &&
+        openSubmenuItem !== item
+    ){
+        openSubmenuItem.classList.remove(
+            "submenu-open"
+        );
+    }
+
+    openSubmenuItem = item;
+
+    item.classList.add(
+        "submenu-open"
+    );
+
+    const submenu =
+        item.querySelector(
+            ".submenu"
+        );
+
+    if(submenu){
+        positionTopSubmenu(item,submenu);
+    }
+}
+
+function closeTopSubmenuSoon(){
+
+    clearTimeout(submenuCloseTimeout);
+
+    submenuCloseTimeout =
+        setTimeout(()=>{
+
+            if(openSubmenuItem){
+                openSubmenuItem.classList.remove(
+                    "submenu-open"
+                );
+            }
+
+            openSubmenuItem = null;
+
+        },180);
+}
+
+document.addEventListener(
+    "mouseover",
+    e=>{
+
+        const item =
+            e.target.closest(
+                ".dropdown-item"
+            );
+
+        if(!item){
+            return;
+        }
+
+        const submenu =
+            item.querySelector(
+                ".submenu"
+            );
+
+        if(!submenu){
+            return;
+        }
+
+        keepTopSubmenuOpen(item);
+    }
+);
+
+document.addEventListener(
+    "mouseout",
+    e=>{
+
+        const item =
+            e.target.closest(
+                ".dropdown-item.submenu-open"
+            );
+
+        if(!item){
+            return;
+        }
+
+        const related =
+            e.relatedTarget;
+
+        if(
+            related &&
+            item.contains(related)
+        ){
+            return;
+        }
+
+        closeTopSubmenuSoon();
+    }
+);
+
+document.addEventListener(
+    "mouseover",
+    e=>{
+
+        const submenu =
+            e.target.closest(
+                ".submenu"
+            );
+
+        if(
+            !submenu ||
+            !openSubmenuItem ||
+            !openSubmenuItem.contains(submenu)
+        ){
+            return;
+        }
+
+        keepTopSubmenuOpen(openSubmenuItem);
+    }
+);
+
+document.addEventListener("DOMContentLoaded", function () {
+    const hero = document.querySelector(".hero");
+
+    if (!hero) return;
+
+    hero.addEventListener("click", function () {
+        secretClickCount++;
+
+        clearTimeout(secretClickTimer);
+
+        secretClickTimer = setTimeout(function () {
+            secretClickCount = 0;
+        }, 2500);
+
+        if (secretClickCount >= 10) {
+            secretClickCount = 0;
+
+            showAllLicencesSecretMode = !showAllLicencesSecretMode;
+
+            allAnime = animeData
+                .filter(r => showAllLicencesSecretMode || r[2] == "1")
+                .map(r => r[0]);
+
+            buildSidebar();
+            buildTopMenus();
+            buildLicenceCards();
+
+            if (window.location.pathname === "/") {
+    document.getElementById("licenceCardsGrid").style.display = "grid";
+    document.getElementById("productGrid").style.display = "none";
+    document.getElementById("licenceCardsSizeToggle").style.display = "block";
+}
+
+            alert(
+                showAllLicencesSecretMode
+                    ? "Mode secret activé : toutes les licences sont visibles."
+                    : "Mode secret désactivé : seules les licences actives sont visibles."
+            );
+        }
+    });
+});
