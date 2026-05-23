@@ -2126,7 +2126,7 @@ function handleLicenceRoute(){
     } else if(path.startsWith("/licence/")){
 
         const slug =
-            path
+            decodeURIComponent(path)
                 .split("/licence/")[1]
                 ?.toLowerCase();
 
