@@ -2010,6 +2010,19 @@ body{
         z-index:9999;
     }
 
+    .dropdown-item:hover .submenu{
+        display:none;
+    }
+
+    .dropdown-item.submenu-open .submenu{
+        display:block;
+        background:#1b1230;
+        border:1px solid rgba(244,114,182,0.28);
+        box-shadow:
+            0 14px 34px rgba(0,0,0,0.56),
+            0 0 0 1px rgba(255,255,255,0.04);
+    }
+
     /* ELEMENTS SUPPRIMES MOBILE */
 
     .range-container,

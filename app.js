@@ -623,6 +623,10 @@ const typesDropdownScroll =
             data-type="${encodeURIComponent(type)}"
 
             onclick="
+                if(openMobileTopSubmenu(event,this)){
+                    return;
+                }
+
                 quickType(
                     decodeURIComponent(
                         this.dataset.type
@@ -729,6 +733,10 @@ const licencesDropdownScroll =
                         data-licence="${encodeURIComponent(licence)}"
 
                         onclick="
+                            if(openMobileTopSubmenu(event,this)){
+                                return;
+                            }
+
                             quickLicence(
                                 decodeURIComponent(
                                     this.dataset.licence
@@ -786,6 +794,10 @@ function closeTopMenusOnMobile(){
         .forEach(el=>{
             el.classList.remove("submenu-open");
         });
+
+    openSubmenuItem = null;
+
+    clearTimeout(submenuCloseTimeout);
 
     document
         .querySelectorAll(".dropdown")
@@ -2297,6 +2309,13 @@ loadData();
 let openSubmenuItem = null;
 let submenuCloseTimeout = null;
 
+function isMobileTopMenu(){
+
+    return window.matchMedia(
+        "(max-width:768px)"
+    ).matches;
+}
+
 function positionTopSubmenu(item,submenu){
 
     const rect =
@@ -2376,6 +2395,29 @@ function keepTopSubmenuOpen(item){
     }
 }
 
+function openMobileTopSubmenu(event,element){
+
+    if(!isMobileTopMenu()){
+        return false;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const item =
+        element.closest(
+            ".dropdown-item"
+        );
+
+    if(!item){
+        return true;
+    }
+
+    keepTopSubmenuOpen(item);
+
+    return true;
+}
+
 function closeTopSubmenuSoon(){
 
     clearTimeout(submenuCloseTimeout);
@@ -2397,6 +2439,10 @@ function closeTopSubmenuSoon(){
 document.addEventListener(
     "mouseover",
     e=>{
+
+        if(isMobileTopMenu()){
+            return;
+        }
 
         const item =
             e.target.closest(
@@ -2423,6 +2469,10 @@ document.addEventListener(
 document.addEventListener(
     "mouseout",
     e=>{
+
+        if(isMobileTopMenu()){
+            return;
+        }
 
         const item =
             e.target.closest(
@@ -2451,6 +2501,10 @@ document.addEventListener(
     "mouseover",
     e=>{
 
+        if(isMobileTopMenu()){
+            return;
+        }
+
         const submenu =
             e.target.closest(
                 ".submenu"
@@ -2465,6 +2519,75 @@ document.addEventListener(
         }
 
         keepTopSubmenuOpen(openSubmenuItem);
+    }
+);
+
+document.addEventListener(
+    "click",
+    e=>{
+
+        if(!isMobileTopMenu()){
+            return;
+        }
+
+        const menuItem =
+            e.target.closest(
+                ".main-header-left .menu-item"
+            );
+
+        if(
+            menuItem &&
+            !e.target.closest(".dropdown")
+        ){
+            e.preventDefault();
+            e.stopPropagation();
+
+            const dropdown =
+                menuItem.querySelector(
+                    ".dropdown"
+                );
+
+            if(!dropdown){
+                return;
+            }
+
+            const shouldOpen =
+                dropdown.style.display !== "block";
+
+            closeTopMenusOnMobile();
+
+            if(shouldOpen){
+                dropdown.style.display = "block";
+            }
+
+            return;
+        }
+
+        const submenuItem =
+            e.target.closest(
+                ".dropdown-item"
+            );
+
+        if(
+            submenuItem &&
+            submenuItem.querySelector(".submenu") &&
+            !e.target.closest(".submenu")
+        ){
+            e.preventDefault();
+            e.stopPropagation();
+
+            keepTopSubmenuOpen(submenuItem);
+
+            return;
+        }
+
+        if(
+            !e.target.closest(
+                ".main-header-left .menu-item"
+            )
+        ){
+            closeTopMenusOnMobile();
+        }
     }
 );
 
