@@ -550,6 +550,23 @@ const typesDropdownScroll =
 
         let submenu = "";
 
+        submenu += `
+            <div
+                class="dropdown-item"
+                data-type="${encodeURIComponent(type)}"
+                onclick="
+                    quickType(
+                        decodeURIComponent(
+                            this.dataset.type
+                        )
+                    );
+                    closeTopMenusOnMobile();
+                "
+            >
+                Toutes les licences
+            </div>
+        `;
+
         licences.forEach(licence=>{
 
               submenu += `
@@ -586,6 +603,8 @@ const typesDropdownScroll =
                               });
 
                           startSearch();
+
+                          closeTopMenusOnMobile();
                       "
                   >
                       ${licence}
@@ -658,6 +677,23 @@ const licencesDropdownScroll =
 
         let submenu = "";
 
+        submenu += `
+            <div
+                class="dropdown-item"
+                data-licence="${encodeURIComponent(licence)}"
+                onclick="
+                    quickLicence(
+                        decodeURIComponent(
+                            this.dataset.licence
+                        )
+                    );
+                    closeTopMenusOnMobile();
+                "
+            >
+                Tous les personnages
+            </div>
+        `;
+
         persos.forEach(perso=>{
 
             submenu += `
@@ -673,7 +709,9 @@ const licencesDropdownScroll =
                         decodeURIComponent(
                             this.dataset.perso
                         )
-                    )"
+                    );
+                    closeTopMenusOnMobile();
+                    "
                 >
                     ${perso}
                 </div>
@@ -735,6 +773,25 @@ function closeTopMenus(){
             });
 
     },200);
+}
+
+function closeTopMenusOnMobile(){
+
+    if(window.innerWidth > 768){
+        return;
+    }
+
+    document
+        .querySelectorAll(".submenu-open")
+        .forEach(el=>{
+            el.classList.remove("submenu-open");
+        });
+
+    document
+        .querySelectorAll(".dropdown")
+        .forEach(dropdown=>{
+            dropdown.style.display = "none";
+        });
 }
 
 function getSortedLicences(){
@@ -996,6 +1053,7 @@ function quickType(type){
     startSearch();
 
     closeTopMenus();
+
 }
 
 function goToLicencePage(licence){
@@ -1015,6 +1073,7 @@ function goToLicencePage(licence){
 function quickLicence(licence){
 
     goToLicencePage(licence);
+
 }
 
 function quickPerso(licence,perso){
@@ -1052,6 +1111,7 @@ function quickPerso(licence,perso){
 
     startSearch();
     closeTopMenus();
+    closeTopMenusOnMobile();
 }
 
 function updateActiveFilters(){
