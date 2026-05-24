@@ -562,7 +562,7 @@ const typesDropdownScroll =
 
                       onclick="
 
-                          clearMainFilters();
+                          resetAllFiltersForTopDropdown();
 
                           quickTopType =
                               decodeURIComponent(
@@ -877,6 +877,40 @@ function clearMainFilters(){
     quickTopType = "";
 }
 
+function resetAllFiltersForTopDropdown(){
+
+    clearMainFilters();
+
+    waifuMode = false;
+
+    const button =
+        document.getElementById(
+            'waifuButton'
+        );
+
+    if(button){
+        button.classList.remove('active');
+        button.textContent = 'Mode Waifu';
+    }
+
+    quickBudgetCheckboxes.forEach(b=>{
+
+        document.getElementById(
+            b.id
+        ).checked = false;
+    });
+
+    minSlider.value = 1;
+    maxSlider.value = 500;
+
+    updatePriceDisplay();
+
+    favoritesMode = false;
+    updateFavoritesButton();
+
+    routeLicenceFilter = "";
+}
+
 function clearAllFilters(){
 
     const params =
@@ -955,7 +989,7 @@ function handleSearchInput(){
 
 function quickType(type){
 
-    clearMainFilters();
+    resetAllFiltersForTopDropdown();
 
     quickTopType = type;
 
@@ -985,7 +1019,7 @@ function quickLicence(licence){
 
 function quickPerso(licence,perso){
 
-    clearMainFilters();
+    resetAllFiltersForTopDropdown();
     
     quickTopType = "";
 
