@@ -124,12 +124,88 @@ function updateFavoritesButton(){
 
 function parseCSV(text){
 
-    return text.split("\n").map(r =>
+    const rows = [];
+    let row = [];
+    let cell = "";
+    let inQuotes = false;
 
-        r.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
+    for(let i = 0; i < text.length; i++){
 
-        ?.map(c => c.replace(/"/g,"").trim()) || []
-    );
+        const char = text[i];
+        const next = text[i + 1];
+
+        if(char === '"' && inQuotes && next === '"'){
+            cell += '"';
+            i++;
+            continue;
+        }
+
+        if(char === '"'){
+            inQuotes = !inQuotes;
+            continue;
+        }
+
+        if(char === "," && !inQuotes){
+            row.push(cell.trim());
+            cell = "";
+            continue;
+        }
+
+        if((char === "\n" || char === "\r") && !inQuotes){
+
+            if(char === "\r" && next === "\n"){
+                i++;
+            }
+
+            row.push(cell.trim());
+
+            if(row.some(value => value !== "")){
+                rows.push(row);
+            }
+
+            row = [];
+            cell = "";
+            continue;
+        }
+
+        cell += char;
+    }
+
+    row.push(cell.trim());
+
+    if(row.some(value => value !== "")){
+        rows.push(row);
+    }
+
+    return rows;
+}
+
+function parseProductPrice(price){
+
+    return parseFloat(
+        String(price || "")
+            .replace(/[^\d,]/g,"")
+            .replace(",",".")
+    ) || 0;
+}
+
+function prepareProduct(product){
+
+    product._price =
+        parseProductPrice(product.price);
+
+    product._searchText =
+        (
+            (product.name || "") + " " +
+            (product.licence || "") + " " +
+            (product.type || "") + " " +
+            (product.perso || "")
+        ).toLowerCase();
+
+    product._licenceKey =
+        normalizeLicenceKey(product.licence || "");
+
+    return product;
 }
 
 /* LOAD */
@@ -167,7 +243,9 @@ async function loadData(){
     console.time("JSON");
 
     allProducts =
-        await productsRes.json();
+        (await productsRes.json()).map(
+            prepareProduct
+        );
 
     console.timeEnd("JSON");
 
@@ -216,12 +294,8 @@ function buildSidebar(){
     const licenceList =
         document.getElementById("licenceList");
 
-    typeList.innerHTML = "";
-    licenceList.innerHTML = "";
-
-    allTypes.forEach(type=>{
-
-        typeList.innerHTML += `
+    typeList.innerHTML =
+        allTypes.map(type => `
             <label>
 
                 <input
@@ -233,14 +307,16 @@ function buildSidebar(){
                 ${type}
 
             </label>
-        `;
-    });
+        `).join("");
 
+    const sortedLicences = [
+        ...getSortedLicences().priority,
+        ...getSortedLicences().alphabetical
+    ];
 
-[
-    ...getSortedLicences().priority,
-    ...getSortedLicences().alphabetical
-].forEach(licence=>{
+    licenceList.innerHTML =
+        sortedLicences.map(licence=>{
+
         const persos = [...new Set(
 
             allProducts
@@ -255,11 +331,8 @@ function buildSidebar(){
 
         )].sort();
 
-        let persosHTML = "";
-
-        persos.forEach(perso=>{
-
-            persosHTML += `
+        const persosHTML =
+            persos.map(perso => `
 
                 <label>
 
@@ -274,10 +347,9 @@ function buildSidebar(){
                     ${perso}
 
                 </label>
-            `;
-        });
+            `).join("");
 
-        licenceList.innerHTML += `
+        return `
 
             <div class="licence-block">
 
@@ -305,7 +377,7 @@ function buildSidebar(){
 
             </div>
         `;
-    });
+    }).join("");
 }
 
 /* SHOW HIDE PERSOS */
@@ -374,20 +446,6 @@ function handleSidebarLicenceChange(checkbox){
 
     togglePersos(checkbox);
 
-    const checkedLicences =
-        [...document.querySelectorAll(
-            '.licence-checkbox:checked'
-        )];
-
-    if(checkedLicences.length === 1){
-
-        goToLicencePage(
-            checkedLicences[0].value
-        );
-
-        return;
-    }
-
     routeLicenceFilter = "";
 
     history.replaceState(
@@ -454,8 +512,6 @@ function buildLicenceCards(){
         return;
     }
 
-    grid.innerHTML = "";
-
     const licences = animeData
 
         .filter(r =>
@@ -484,9 +540,8 @@ function buildLicenceCards(){
 
         .map(r => r[0]);
 
-    licences.forEach(licence=>{
-
-        grid.innerHTML += `
+    grid.innerHTML =
+        licences.map(licence => `
 
             <a
                 href="/?licence=${encodeURIComponent(licence)}"
@@ -513,8 +568,7 @@ function buildLicenceCards(){
                 </span>
 
             </a>
-        `;
-    });
+        `).join("");
 }
 
 /* TOP MENUS */
@@ -527,30 +581,46 @@ function buildTopMenus(){
     const licencesDropdown =
         document.getElementById("licencesDropdown");
 
-        typesDropdown.innerHTML = `
-    <div class="dropdown-scroll"></div>
-`;
+    const licencesByType = new Map();
+    const persosByLicence = new Map();
 
-const typesDropdownScroll =
-    typesDropdown.querySelector(
-        ".dropdown-scroll"
-    );
+    allProducts.forEach(product=>{
 
-    allTypes.forEach(type=>{
+        if(product.type && product.licence){
 
-        const licences = [...new Set(
+            if(!licencesByType.has(product.type)){
+                licencesByType.set(product.type,new Set());
+            }
 
-            allProducts
+            licencesByType
+                .get(product.type)
+                .add(product.licence);
+        }
 
-            .filter(p => p.type === type)
+        if(
+            product.licence &&
+            product.perso &&
+            product.perso !== "divers"
+        ){
 
-            .map(p => p.licence)
+            if(!persosByLicence.has(product.licence)){
+                persosByLicence.set(product.licence,new Set());
+            }
 
-        )].sort();
+            persosByLicence
+                .get(product.licence)
+                .add(product.perso);
+        }
+    });
 
-        let submenu = "";
+    const typesHTML =
+        allTypes.map(type=>{
 
-        submenu += `
+        const licences = [
+            ...(licencesByType.get(type) || [])
+        ].sort();
+
+        const submenu = `
             <div
                 class="dropdown-item"
                 data-type="${encodeURIComponent(type)}"
@@ -565,54 +635,50 @@ const typesDropdownScroll =
             >
                 Toutes les licences
             </div>
+            ${licences.map(licence => `
+                <div
+                    class="dropdown-item"
+
+                    data-type="${encodeURIComponent(type)}"
+
+                    data-licence="${encodeURIComponent(licence)}"
+
+                    onclick="
+
+                        resetAllFiltersForTopDropdown();
+
+                        quickTopType =
+                            decodeURIComponent(
+                                this.dataset.type
+                            );
+
+                        document
+                            .querySelectorAll(
+                                '.licence-checkbox'
+                            )
+                            .forEach(i=>{
+
+                                if(
+                                    i.value ===
+                                    decodeURIComponent(
+                                        this.dataset.licence
+                                    )
+                                ){
+                                    i.checked = true;
+                                }
+                            });
+
+                        startSearch();
+
+                        closeTopMenusOnMobile();
+                    "
+                >
+                    ${licence}
+                </div>
+            `).join("")}
         `;
 
-        licences.forEach(licence=>{
-
-              submenu += `
-                  <div
-                      class="dropdown-item"
-
-                      data-type="${encodeURIComponent(type)}"
-
-                      data-licence="${encodeURIComponent(licence)}"
-
-                      onclick="
-
-                          resetAllFiltersForTopDropdown();
-
-                          quickTopType =
-                              decodeURIComponent(
-                                  this.dataset.type
-                              );
-
-                          document
-                              .querySelectorAll(
-                                  '.licence-checkbox'
-                              )
-                              .forEach(i=>{
-
-                                  if(
-                                      i.value ===
-                                      decodeURIComponent(
-                                          this.dataset.licence
-                                      )
-                                  ){
-                                      i.checked = true;
-                                  }
-                              });
-
-                          startSearch();
-
-                          closeTopMenusOnMobile();
-                      "
-                  >
-                      ${licence}
-                  </div>
-              `;
-        });
-
-        typesDropdownScroll.innerHTML += `
+        return `
 
             <div class="dropdown-item">
 
@@ -649,39 +715,27 @@ const typesDropdownScroll =
 
             </div>
         `;
-    });
+    }).join("");
 
-licencesDropdown.innerHTML = `
-    <div class="dropdown-scroll"></div>
-`;
+    typesDropdown.innerHTML = `
+        <div class="dropdown-scroll">
+            ${typesHTML}
+        </div>
+    `;
 
-const licencesDropdownScroll =
-    licencesDropdown.querySelector(
-        ".dropdown-scroll"
-    );
+    const sortedLicences = [
+        ...getSortedLicences().priority,
+        ...getSortedLicences().alphabetical
+    ];
 
-[
-    ...getSortedLicences().priority,
-    ...getSortedLicences().alphabetical
-].forEach(licence=>{
+    const licencesHTML =
+        sortedLicences.map(licence=>{
 
-        const persos = [...new Set(
+        const persos = [
+            ...(persosByLicence.get(licence) || [])
+        ].sort();
 
-            allProducts
-
-            .filter(p =>
-                p.licence === licence &&
-                p.perso &&
-                p.perso !== "divers"
-            )
-
-            .map(p => p.perso)
-
-        )].sort();
-
-        let submenu = "";
-
-        submenu += `
+        const submenu = `
             <div
                 class="dropdown-item"
                 data-licence="${encodeURIComponent(licence)}"
@@ -696,11 +750,7 @@ const licencesDropdownScroll =
             >
                 Tous les personnages
             </div>
-        `;
-
-        persos.forEach(perso=>{
-
-            submenu += `
+            ${persos.map(perso => `
                 <div
                     class="dropdown-item"
                     data-licence="${encodeURIComponent(licence)}"
@@ -719,10 +769,10 @@ const licencesDropdownScroll =
                 >
                     ${perso}
                 </div>
-            `;
-        });
+            `).join("")}
+        `;
 
-        licencesDropdownScroll.innerHTML += `
+        return `
 
             <div class="dropdown-item">
 
@@ -759,7 +809,13 @@ const licencesDropdownScroll =
 
             </div>
         `;
-    });
+    }).join("");
+
+    licencesDropdown.innerHTML = `
+        <div class="dropdown-scroll">
+            ${licencesHTML}
+        </div>
+    `;
 }
 
 function closeTopMenus(){
@@ -1458,6 +1514,9 @@ function startSearch(){
 
         .map(i => i.value);
 
+    const selectedTypeSet =
+        new Set(selectedTypes);
+
     const selectedLicences =
 
         [...document.querySelectorAll(
@@ -1466,25 +1525,28 @@ function startSearch(){
 
         .map(i => i.value);
 
+    const selectedLicenceSet =
+        new Set(selectedLicences);
+
     const selectedPersos =
 
         [...document.querySelectorAll(
             '.perso-checkbox:checked'
         )];
 
-    const displayedFilters =
-            new Set();
+    const selectedPersosByLicence =
+        new Map();
 
-    function addFilterTag(key,html){
+    selectedPersos.forEach(input=>{
 
-            if(displayedFilters.has(key)){
-                return;
-            }
-
-            displayedFilters.add(key);
-
-            container.innerHTML += html;
+        if(!selectedPersosByLicence.has(input.dataset.licence)){
+            selectedPersosByLicence.set(input.dataset.licence,new Set());
         }
+
+        selectedPersosByLicence
+            .get(input.dataset.licence)
+            .add(input.value);
+    });
 
     const searchText =
 
@@ -1504,12 +1566,15 @@ function startSearch(){
     const maxPrice =
         parseFloat(maxSlider.value);
 
+    const routeLicenceKey =
+        normalizeLicenceKey(routeLicenceFilter);
+
     allResults = allProducts.filter(p=>{
 
                 if(
             routeLicenceFilter &&
-            normalizeLicenceKey(p.licence) !==
-            normalizeLicenceKey(routeLicenceFilter)
+            p._licenceKey !==
+            routeLicenceKey
         ){
             return false;
         }
@@ -1523,7 +1588,7 @@ function startSearch(){
 
         if(
             selectedTypes.length &&
-            !selectedTypes.includes(p.type)
+            !selectedTypeSet.has(p.type)
         ){
             return false;
         }
@@ -1538,38 +1603,27 @@ function startSearch(){
 
         if(
             selectedLicences.length &&
-            !selectedLicences.includes(p.licence)
+            !selectedLicenceSet.has(p.licence)
         ){
             return false;
         }
 
         const persosForLicence =
+            selectedPersosByLicence.get(p.licence);
 
-            selectedPersos.filter(
-                i => i.dataset.licence === p.licence
-            );
+        if(
+            persosForLicence &&
+            persosForLicence.size > 0
+        ){
 
-        if(persosForLicence.length > 0){
-
-            const persoValues =
-                persosForLicence.map(i => i.value);
-
-            if(!persoValues.includes(p.perso)){
+            if(!persosForLicence.has(p.perso)){
                 return false;
             }
         }
 
-        const price =
-
-            parseFloat(
-                p.price
-                .replace(/[^\d,]/g,"")
-                .replace(",",".")
-            ) || 0;
-
         if(
-            price < minPrice ||
-            price > maxPrice
+            p._price < minPrice ||
+            p._price > maxPrice
         ){
             return false;
         }
@@ -1583,16 +1637,7 @@ function startSearch(){
 
         if(searchText){
 
-            const txt = (
-
-                p.name + " " +
-                p.licence + " " +
-                p.type + " " +
-                p.perso
-
-            ).toLowerCase();
-
-            if(!txt.includes(searchText)){
+            if(!p._searchText.includes(searchText)){
                 return false;
             }
         }
@@ -1602,26 +1647,12 @@ function startSearch(){
 
     allResults.sort((a,b)=>{
 
-        const pa =
-            parseFloat(
-                a.price
-                .replace(/[^\d,]/g,"")
-                .replace(",",".")
-            ) || 0;
-
-        const pb =
-            parseFloat(
-                b.price
-                .replace(/[^\d,]/g,"")
-                .replace(",",".")
-            ) || 0;
-
         if(sort === "price-asc"){
-            return pa - pb;
+            return a._price - b._price;
         }
 
         if(sort === "price-desc"){
-            return pb - pa;
+            return b._price - a._price;
         }
 
         if(sort === "licence-asc"){
@@ -1721,6 +1752,11 @@ function removeFilter(type,value){
 
 function updateSidebarTypeVisibility(){
 
+    const hasCheckedType =
+        document.querySelector(
+            '#typeList input:checked'
+        );
+
     const availableTypes =
         new Set(
             allResults
@@ -1742,6 +1778,7 @@ function updateSidebarTypeVisibility(){
             }
 
             if(
+                hasCheckedType ||
                 availableTypes.has(input.value) ||
                 input.checked
             ){
@@ -2323,6 +2360,19 @@ function positionTopSubmenu(item,submenu){
 
     const margin = 8;
 
+    if(isMobileTopMenu()){
+
+        submenu.style.position = "relative";
+        submenu.style.left = "auto";
+        submenu.style.top = "auto";
+        submenu.style.width = "100%";
+        submenu.style.minWidth = "0";
+        submenu.style.maxHeight = "48vh";
+        submenu.style.marginTop = "8px";
+
+        return;
+    }
+
     const submenuWidth =
         submenu.offsetWidth || 220;
 
@@ -2344,7 +2394,9 @@ function positionTopSubmenu(item,submenu){
     }
 
     let top =
-        rect.top;
+        isMobileTopMenu()
+            ? rect.bottom + 6
+            : rect.top;
 
     if(
         top + submenuHeight + margin >
