@@ -655,9 +655,11 @@ body{
 
     overflow-x:hidden;
 
-    background:#111827;
+    background:#1b1230;
 
     border-radius:14px;
+
+    border:1px solid rgba(244,114,182,0.28);
 
     padding:8px;
 
@@ -669,7 +671,9 @@ body{
 
     z-index:4000;
 
-    box-shadow:0 10px 30px rgba(0,0,0,0.45);
+    box-shadow:
+        0 14px 34px rgba(0,0,0,0.56),
+        0 0 0 1px rgba(255,255,255,0.04);
 
     scrollbar-width:thin;
     

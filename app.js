@@ -189,23 +189,102 @@ function parseProductPrice(price){
     ) || 0;
 }
 
+function splitMultiValues(value){
+
+    return String(value || "")
+        .split(/[;|,]/)
+        .map(item => item.trim())
+        .filter(Boolean);
+}
+
 function prepareProduct(product){
 
     product._price =
         parseProductPrice(product.price);
+
+    product._persos =
+        splitMultiValues(product.perso);
+
+    product._persoKeys =
+        new Set(
+            product._persos.map(
+                normalizeLicenceKey
+            )
+        );
 
     product._searchText =
         (
             (product.name || "") + " " +
             (product.licence || "") + " " +
             (product.type || "") + " " +
-            (product.perso || "")
+            product._persos.join(" ")
         ).toLowerCase();
 
     product._licenceKey =
         normalizeLicenceKey(product.licence || "");
 
     return product;
+}
+
+function getLicenceAliases(row){
+
+    return [
+        row[0],
+        ...row.slice(3).flatMap(splitMultiValues)
+    ].filter(Boolean);
+}
+
+function findLicenceFromSearch(query){
+
+    const queryKey =
+        normalizeLicenceKey(query);
+
+    if(!queryKey){
+        return "";
+    }
+
+    const row =
+        animeData.find(r =>
+            getLicenceAliases(r)
+                .some(alias =>
+                    normalizeLicenceKey(alias) === queryKey
+                )
+        );
+
+    return row ? row[0] : "";
+}
+
+function findPersoFromSearch(query){
+
+    const queryKey =
+        normalizeLicenceKey(query);
+
+    if(queryKey.length < 3){
+        return "";
+    }
+
+    const persos =
+        [...new Set(
+            allProducts
+                .flatMap(p => p._persos || [])
+                .filter(perso =>
+                    perso &&
+                    normalizeLicenceKey(perso) !== "divers"
+                )
+        )];
+
+    return persos
+        .sort((a,b)=> a.length - b.length)
+        .find(perso=>{
+
+            const persoKey =
+                normalizeLicenceKey(perso);
+
+            return (
+                persoKey === queryKey ||
+                persoKey.includes(queryKey)
+            );
+        }) || "";
 }
 
 /* LOAD */
@@ -321,13 +400,14 @@ function buildSidebar(){
 
             allProducts
 
-            .filter(p =>
-                p.licence === licence &&
-                p.perso &&
-                p.perso !== "divers"
-            )
+            .filter(p => p.licence === licence)
 
-            .map(p => p.perso)
+            .flatMap(p => p._persos || [])
+
+            .filter(perso =>
+                perso &&
+                normalizeLicenceKey(perso) !== "divers"
+            )
 
         )].sort();
 
@@ -597,19 +677,27 @@ function buildTopMenus(){
                 .add(product.licence);
         }
 
+        const productPersos =
+            (product._persos || [])
+                .filter(perso =>
+                    normalizeLicenceKey(perso) !== "divers"
+                );
+
         if(
             product.licence &&
-            product.perso &&
-            product.perso !== "divers"
+            productPersos.length
         ){
 
             if(!persosByLicence.has(product.licence)){
                 persosByLicence.set(product.licence,new Set());
             }
 
-            persosByLicence
-                .get(product.licence)
-                .add(product.perso);
+            productPersos.forEach(perso=>{
+
+                persosByLicence
+                    .get(product.licence)
+                    .add(perso);
+            });
         }
     });
 
@@ -659,9 +747,11 @@ function buildTopMenus(){
                             .forEach(i=>{
 
                                 if(
-                                    i.value ===
-                                    decodeURIComponent(
-                                        this.dataset.licence
+                                    normalizeLicenceKey(i.value) ===
+                                    normalizeLicenceKey(
+                                        decodeURIComponent(
+                                            this.dataset.licence
+                                        )
                                     )
                                 ){
                                     i.checked = true;
@@ -963,6 +1053,7 @@ function normalizeText(text){
 function normalizeLicenceKey(text){
 
     return normalizeText(text)
+        .replace(/kimetsunoyaiba/g,"")
         .replace(/[^a-z0-9]/g,"");
 }
 
@@ -1158,7 +1249,8 @@ function quickPerso(licence,perso){
         .forEach(i => {
 
             i.checked =
-                normalizeText(i.value) === normalizeText(licence)
+                normalizeLicenceKey(i.value) ===
+                normalizeLicenceKey(licence)
 
             togglePersos(i);
         });
@@ -1172,8 +1264,10 @@ function quickPerso(licence,perso){
 
             i.checked =
                 (
-                    i.dataset.licence === licence &&
-                    i.value === perso
+                    normalizeLicenceKey(i.dataset.licence) ===
+                    normalizeLicenceKey(licence) &&
+                    normalizeLicenceKey(i.value) ===
+                    normalizeLicenceKey(perso)
                 );
         });
 
@@ -1553,7 +1647,22 @@ function startSearch(){
         document
         .getElementById('searchInput')
         .value
+        .trim()
         .toLowerCase();
+
+    const searchedLicence =
+        findLicenceFromSearch(searchText);
+
+    const searchedPerso =
+        searchedLicence
+            ? ""
+            : findPersoFromSearch(searchText);
+
+    const searchedLicenceKey =
+        normalizeLicenceKey(searchedLicence);
+
+    const searchedPersoKey =
+        normalizeLicenceKey(searchedPerso);
 
     const sort =
         document.getElementById(
@@ -1571,10 +1680,24 @@ function startSearch(){
 
     allResults = allProducts.filter(p=>{
 
-                if(
+        if(
             routeLicenceFilter &&
             p._licenceKey !==
             routeLicenceKey
+        ){
+            return false;
+        }
+
+        if(
+            searchedLicence &&
+            p._licenceKey !== searchedLicenceKey
+        ){
+            return false;
+        }
+
+        if(
+            searchedPerso &&
+            !p._persoKeys.has(searchedPersoKey)
         ){
             return false;
         }
@@ -1616,7 +1739,15 @@ function startSearch(){
             persosForLicence.size > 0
         ){
 
-            if(!persosForLicence.has(p.perso)){
+            const hasSelectedPerso =
+                [...persosForLicence]
+                    .some(perso =>
+                        p._persoKeys.has(
+                            normalizeLicenceKey(perso)
+                        )
+                    );
+
+            if(!hasSelectedPerso){
                 return false;
             }
         }
@@ -1635,7 +1766,11 @@ function startSearch(){
             return false;
         }
 
-        if(searchText){
+        if(
+            searchText &&
+            !searchedLicence &&
+            !searchedPerso
+        ){
 
             if(!p._searchText.includes(searchText)){
                 return false;
@@ -2619,6 +2754,23 @@ document.addEventListener(
             e.target.closest(
                 ".dropdown-item"
             );
+
+        const submenuChoice =
+            e.target.closest(
+                ".submenu .dropdown-item"
+            );
+
+        if(
+            submenuChoice &&
+            !submenuChoice.querySelector(".submenu")
+        ){
+            setTimeout(
+                closeTopMenusOnMobile,
+                0
+            );
+
+            return;
+        }
 
         if(
             submenuItem &&
