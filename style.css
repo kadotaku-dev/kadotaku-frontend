@@ -2061,13 +2061,8 @@ body{
 
     .dropdown-item.submenu-open .submenu{
         display:block;
-        position:relative !important;
-        left:auto !important;
-        top:auto !important;
-        width:100%;
+        position:fixed;
         min-width:0;
-        max-height:48vh;
-        margin-top:8px;
         margin-left:0;
         background:#1b1230;
         border:1px solid rgba(244,114,182,0.28);

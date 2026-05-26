@@ -2574,13 +2574,69 @@ function positionTopSubmenu(item,submenu){
 
     if(isMobileTopMenu()){
 
-        submenu.style.position = "relative";
-        submenu.style.left = "auto";
-        submenu.style.top = "auto";
-        submenu.style.width = "100%";
+        const menuBar =
+            item.closest(".main-header-left");
+
+        const menuBarRect =
+            menuBar
+                ? menuBar.getBoundingClientRect()
+                : {bottom:120};
+
+        const viewportMargin = 10;
+
+        const minTop =
+            Math.min(
+                window.innerHeight - 180,
+                menuBarRect.bottom + viewportMargin
+            );
+
+        const submenuHeight =
+            Math.min(
+                submenu.scrollHeight || 320,
+                window.innerHeight * 0.48
+            );
+
+        const maxTop =
+            Math.max(
+                minTop,
+                window.innerHeight -
+                submenuHeight -
+                viewportMargin
+            );
+
+        const top =
+            Math.min(
+                Math.max(rect.top,minTop),
+                maxTop
+            );
+
+        const dropdown =
+            item.closest(".dropdown");
+
+        const dropdownRect =
+            dropdown
+                ? dropdown.getBoundingClientRect()
+                : {
+                    left:viewportMargin,
+                    width:window.innerWidth - viewportMargin * 2
+                };
+
+        submenu.style.position = "fixed";
+        submenu.style.left =
+            `${Math.max(viewportMargin,dropdownRect.left + viewportMargin)}px`;
+        submenu.style.top = `${top}px`;
+        submenu.style.width =
+            `${Math.min(
+                window.innerWidth - viewportMargin * 2,
+                dropdownRect.width - viewportMargin * 2
+            )}px`;
         submenu.style.minWidth = "0";
-        submenu.style.maxHeight = "48vh";
-        submenu.style.marginTop = "8px";
+        submenu.style.maxHeight =
+            `${Math.max(
+                160,
+                window.innerHeight - top - viewportMargin
+            )}px`;
+        submenu.style.marginTop = "0";
 
         return;
     }
