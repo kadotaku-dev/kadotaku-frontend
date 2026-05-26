@@ -770,25 +770,31 @@ function buildTopMenus(){
 
         return `
 
-            <div class="dropdown-item">
+            <div
+                class="dropdown-item"
+                data-type="${encodeURIComponent(type)}"
+                onclick="
+                    if(event.target.closest('.submenu')){
+                        return;
+                    }
+
+                    if(openMobileTopSubmenu(event,this)){
+                        return;
+                    }
+
+                    quickType(
+                        decodeURIComponent(
+                            this.dataset.type
+                        )
+                    )
+                "
+            >
 
                     <div class="has-submenu">
 
         <span
             class="top-parent-link"
             data-type="${encodeURIComponent(type)}"
-
-            onclick="
-                if(openMobileTopSubmenu(event,this)){
-                    return;
-                }
-
-                quickType(
-                    decodeURIComponent(
-                        this.dataset.type
-                    )
-                )
-            "
         >
             ${type}
         </span>
@@ -864,25 +870,31 @@ function buildTopMenus(){
 
         return `
 
-            <div class="dropdown-item">
+            <div
+                class="dropdown-item"
+                data-licence="${encodeURIComponent(licence)}"
+                onclick="
+                    if(event.target.closest('.submenu')){
+                        return;
+                    }
+
+                    if(openMobileTopSubmenu(event,this)){
+                        return;
+                    }
+
+                    quickLicence(
+                        decodeURIComponent(
+                            this.dataset.licence
+                        )
+                    )
+                "
+            >
 
                 <div class="has-submenu">
 
                     <span
                         class="top-parent-link"
                         data-licence="${encodeURIComponent(licence)}"
-
-                        onclick="
-                            if(openMobileTopSubmenu(event,this)){
-                                return;
-                            }
-
-                            quickLicence(
-                                decodeURIComponent(
-                                    this.dataset.licence
-                                )
-                            )
-                        "
                     >
                         ${licence}
                     </span>
@@ -909,6 +921,11 @@ function buildTopMenus(){
 }
 
 function closeTopMenus(){
+
+    if(isMobileTopMenu()){
+        closeTopMenusOnMobile();
+        return;
+    }
 
     document
         .querySelectorAll('.dropdown')
@@ -1594,6 +1611,12 @@ function switchHomeToCatalogueView(){
     if(productGrid){
         productGrid.style.display = "grid";
     }
+
+    document
+        .getElementById(
+            "licenceCardsSizeToggle"
+        )
+        .style.display = "none";
 }
 
 function startSearch(){
@@ -2822,11 +2845,20 @@ document.addEventListener("DOMContentLoaded", function () {
             buildTopMenus();
             buildLicenceCards();
 
-            if (window.location.pathname === "/") {
-    document.getElementById("licenceCardsGrid").style.display = "grid";
-    document.getElementById("productGrid").style.display = "none";
-    document.getElementById("licenceCardsSizeToggle").style.display = "block";
-}
+            const params =
+                new URLSearchParams(
+                    window.location.search
+                );
+
+            if(
+                window.location.pathname === "/" &&
+                !params.get("page") &&
+                !params.get("licence")
+            ){
+                document.getElementById("licenceCardsGrid").style.display = "grid";
+                document.getElementById("productGrid").style.display = "none";
+                document.getElementById("licenceCardsSizeToggle").style.display = "block";
+            }
 
             alert(
                 showAllLicencesSecretMode
