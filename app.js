@@ -620,8 +620,7 @@ function buildLicenceCards(){
 
         .map(r => r[0]);
 
-    grid.innerHTML =
-        licences.map(licence => `
+    const buildCardHTML = (licence,index) => `
 
             <a
                 href="/?licence=${encodeURIComponent(licence)}"
@@ -632,7 +631,8 @@ function buildLicenceCards(){
                 <img
                     src="/cards/thumbs/Card ${licence}.webp"
                     alt="${licence}"
-                    loading="lazy"
+                    loading="${index < 12 ? "eager" : "lazy"}"
+                    fetchpriority="${index < 8 ? "high" : "auto"}"
                 >
 
                 <div class="licence-card-title">
@@ -648,7 +648,61 @@ function buildLicenceCards(){
                 </span>
 
             </a>
-        `).join("");
+        `;
+
+    const firstBatchSize = 12;
+    const chunkSize = 12;
+
+    const buildCardsHTML = (start,end)=>
+        licences
+            .slice(start,end)
+            .map((licence,index)=>
+                buildCardHTML(
+                    licence,
+                    start + index
+                )
+            )
+            .join("");
+
+    grid.innerHTML =
+        buildCardsHTML(
+            0,
+            firstBatchSize
+        );
+
+    let nextIndex = firstBatchSize;
+
+    const appendNextChunk = ()=>{
+
+        if(nextIndex >= licences.length){
+            return;
+        }
+
+        const html =
+            buildCardsHTML(
+                nextIndex,
+                nextIndex + chunkSize
+            );
+
+        grid.insertAdjacentHTML(
+            "beforeend",
+            html
+        );
+
+        nextIndex += chunkSize;
+
+        scheduleNextChunk();
+    };
+
+    const scheduleNextChunk = ()=>{
+
+        setTimeout(
+            appendNextChunk,
+            180
+        );
+    };
+
+    scheduleNextChunk();
 }
 
 /* TOP MENUS */

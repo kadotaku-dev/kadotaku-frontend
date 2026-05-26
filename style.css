@@ -1656,8 +1656,17 @@ body{
         box-sizing:border-box;
     }
 
+    html{
+        height:auto;
+        min-height:100%;
+        overflow-y:auto;
+    }
+
     body{
+        height:auto;
+        min-height:100vh;
         overflow-x:hidden;
+        overflow-y:auto;
     }
 
     /* BANDEAU */
@@ -1910,6 +1919,12 @@ body{
 
         width:100%;
 
+        height:auto;
+
+        overflow:visible;
+
+        flex:none;
+
         margin-top:2px !important;
     }
 
@@ -1922,6 +1937,10 @@ body{
         position:relative;
 
         width:100%;
+
+        height:auto;
+
+        overflow:visible;
 
         margin:0;
 
@@ -1985,6 +2004,28 @@ body{
         padding:10px;
 
         display:block;
+    }
+
+    .favorite-btn{
+
+        top:8px;
+        right:8px;
+
+        width:32px;
+        height:32px;
+
+        background:rgba(15,23,42,0.72);
+
+        border-radius:999px;
+
+        color:#f8fafc;
+
+        text-shadow:none;
+    }
+
+    .favorite-btn.active{
+
+        color:#ff4d6d;
     }
 
     .card-title{
