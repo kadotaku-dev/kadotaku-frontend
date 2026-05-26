@@ -137,6 +137,40 @@ function buildLicenceHtml(baseHtml, licence) {
   return html;
 }
 
+function buildCatalogueHtml(baseHtml) {
+  const title = "Catalogue Kadotaku | Cadeaux anime, manga, figurines et goodies";
+  const description =
+    "Explorez le catalogue Kadotaku : figurines, goodies, mugs, peluches, posters et idées cadeaux pour fans d'anime et de manga.";
+  const canonical = `${SITE_URL}/catalogue`;
+
+  let html = baseHtml;
+
+  html = replaceTag(
+    html,
+    /<title>[\s\S]*?<\/title>/i,
+    `<title>\n${escapeHtml(title)}\n</title>`,
+  );
+
+  html = replaceTag(
+    html,
+    /<meta\s+id="metaDescription"\s+name="description"\s+content="[^"]*"\s*>/i,
+    `<meta\n    id="metaDescription"\n    name="description"\ncontent="${escapeHtml(description)}">`,
+  );
+
+  html = replaceTag(
+    html,
+    /<link\s+rel="canonical"\s+href="[^"]*"\s*>/i,
+    `<link rel="canonical" href="${escapeHtml(canonical)}">`,
+  );
+
+  html = html.replace(
+    /<meta property="og:site_name" content="Kadotaku">/i,
+    `<meta property="og:site_name" content="Kadotaku">\n<meta property="og:title" content="${escapeHtml(title)}">\n<meta property="og:description" content="${escapeHtml(description)}">\n<meta property="og:url" content="${escapeHtml(canonical)}">`,
+  );
+
+  return html;
+}
+
 const baseHtml = await fs.readFile(indexPath, "utf8");
 const csv = await (await fetch(SHEET_CSV_URL)).text();
 const rows = parseCsv(csv).slice(1);
@@ -154,6 +188,14 @@ for (const licence of licences) {
     "utf8",
   );
 }
+
+const catalogueDir = path.join(root, "catalogue");
+await fs.mkdir(catalogueDir, { recursive: true });
+await fs.writeFile(
+  path.join(catalogueDir, "index.html"),
+  buildCatalogueHtml(baseHtml),
+  "utf8",
+);
 
 const sitemap = [
   '<?xml version="1.0" encoding="UTF-8"?>',
@@ -173,3 +215,4 @@ const sitemap = [
 await fs.writeFile(path.join(root, "sitemap.xml"), sitemap, "utf8");
 
 console.log(`Pages licences générées : ${licences.length}`);
+console.log("Page catalogue générée : 1");
