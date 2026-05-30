@@ -935,6 +935,17 @@ body{
 .range-container{
     position:relative;
     height:70px;
+    cursor:pointer;
+}
+
+.range-container::after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:20px;
+    height:36px;
+    pointer-events:none;
 }
 
 .range-values{
@@ -1332,6 +1343,20 @@ body{
 .modal img{
     max-width:80%;
     max-height:80%;
+
+    transition:transform 0.16s ease;
+}
+
+@media (min-width:769px) and (hover:hover) and (pointer:fine){
+
+    .modal img.zoom-ready{
+        cursor:zoom-in;
+    }
+
+    .modal img.zoomed{
+        transform:scale(2.1);
+        cursor:zoom-out;
+    }
 }
 
 .topbar{

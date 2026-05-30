@@ -12,6 +12,7 @@ let allResults = [];
 let showAllLicencesSecretMode = false;
 let secretClickCount = 0;
 let secretClickTimer = null;
+const DEFAULT_MAX_PRICE = 1000;
 
 let waifuMode = false;
 
@@ -199,6 +200,9 @@ function splitMultiValues(value){
 
 function prepareProduct(product){
 
+    product._randomSort =
+        Math.random();
+
     product._price =
         parseProductPrice(product.price);
 
@@ -290,6 +294,8 @@ function findPersoFromSearch(query){
 /* LOAD */
 
 async function loadData(){
+
+    ensureSortOptions();
 
     console.time("TOTAL");
 
@@ -562,7 +568,7 @@ function expandLicenceCard(event,element){
             element.dataset.image
         );
 
-    openModal(image);
+    openModal(image,true);
 
     return false;
 }
@@ -1128,6 +1134,64 @@ function normalizeLicenceKey(text){
         .replace(/[^a-z0-9]/g,"");
 }
 
+function compareText(a,b){
+
+    return String(a || "").localeCompare(
+        String(b || ""),
+        "fr",
+        {sensitivity:"base"}
+    );
+}
+
+function firstPersoName(product){
+
+    return (
+        product._persos &&
+        product._persos.length
+    )
+        ? product._persos[0]
+        : "";
+}
+
+function ensureSortOptions(){
+
+    const sortSelect =
+        document.getElementById("sortSelect");
+
+    if(!sortSelect){
+        return;
+    }
+
+    const expectedOptions = [
+        ["random","Aléatoire"],
+        ["price-asc","Prix croissant"],
+        ["price-desc","Prix décroissant"],
+        ["licence-asc","Licence A → Z"],
+        ["licence-desc","Licence Z → A"],
+        ["type-asc","Type A → Z"],
+        ["type-desc","Type Z → A"],
+        ["perso-asc","Personnage A → Z"],
+        ["perso-desc","Personnage Z → A"]
+    ];
+
+    const currentValue =
+        sortSelect.value || "random";
+
+    sortSelect.innerHTML =
+        expectedOptions
+            .map(([value,label]) => `
+                <option value="${value}">
+                    ${label}
+                </option>
+            `)
+            .join("");
+
+    sortSelect.value =
+        expectedOptions.some(([value]) => value === currentValue)
+            ? currentValue
+            : "random";
+}
+
 /* QUICK FILTERS */
 
 function clearMainFilters(){
@@ -1188,7 +1252,7 @@ function resetAllFiltersForTopDropdown(){
     });
 
     minSlider.value = 1;
-    maxSlider.value = 500;
+    maxSlider.value = DEFAULT_MAX_PRICE;
 
     updatePriceDisplay();
 
@@ -1242,7 +1306,7 @@ function clearAllFilters(){
 
     minSlider.value = 1;
 
-    maxSlider.value = 500;
+    maxSlider.value = DEFAULT_MAX_PRICE;
 
     updatePriceDisplay();
 
@@ -1292,12 +1356,24 @@ function goToLicencePage(licence){
         .toLowerCase()
         .replaceAll(" ","-");
 
+    const isLocalHost =
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "localhost" ||
+        window.location.protocol === "file:";
+
+    const hasStaticLicencePage =
+        allAnime.some(l =>
+            normalizeLicenceKey(l) ===
+            normalizeLicenceKey(licence)
+        );
+
     window.location.href =
-        window.location.hostname === "127.0.0.1"
+        isLocalHost ||
+        !hasStaticLicencePage
 
         ? `/?licence=${encodeURIComponent(licence)}`
 
-        : `/licence/${slug}`;
+        : `/licence/${encodeURIComponent(slug)}`;
 }
 
 function quickLicence(licence){
@@ -1515,7 +1591,7 @@ if(activeQuickBudget){
                     onclick="
                         document.getElementById('${activeQuickBudget.id}').checked = false;
                         minSlider.value = 1;
-                        maxSlider.value = 500;
+                        maxSlider.value = DEFAULT_MAX_PRICE;
                         updatePriceDisplay();
                         startSearch();
                     "
@@ -1529,7 +1605,7 @@ if(activeQuickBudget){
 
 } else if(
     minSlider.value !== "1" ||
-    maxSlider.value !== "500"
+    maxSlider.value !== String(DEFAULT_MAX_PRICE)
 ){
 
     addFilterTag(
@@ -1543,7 +1619,7 @@ if(activeQuickBudget){
                     class="filter-remove"
                     onclick="
                         minSlider.value = 1;
-                        maxSlider.value = 500;
+                        maxSlider.value = DEFAULT_MAX_PRICE;
                         updatePriceDisplay();
                         startSearch();
                     "
@@ -1611,7 +1687,7 @@ if(favoritesMode){
         favoritesMode ||
         activeQuickBudget ||
         minSlider.value !== "1" ||
-        maxSlider.value !== "500";
+        maxSlider.value !== String(DEFAULT_MAX_PRICE);
 
     document.getElementById(
         'clearAllFilters'
@@ -1859,6 +1935,10 @@ function startSearch(){
 
     allResults.sort((a,b)=>{
 
+        if(sort === "random"){
+            return a._randomSort - b._randomSort;
+        }
+
         if(sort === "price-asc"){
             return a._price - b._price;
         }
@@ -1868,14 +1948,54 @@ function startSearch(){
         }
 
         if(sort === "licence-asc"){
-            return a.licence.localeCompare(
-                b.licence
+            return (
+                compareText(a.licence,b.licence) ||
+                compareText(a.name,b.name)
             );
         }
 
         if(sort === "licence-desc"){
-            return b.licence.localeCompare(
-                a.licence
+            return (
+                compareText(b.licence,a.licence) ||
+                compareText(a.name,b.name)
+            );
+        }
+
+        if(sort === "type-asc"){
+            return (
+                compareText(a.type,b.type) ||
+                compareText(a.licence,b.licence) ||
+                compareText(a.name,b.name)
+            );
+        }
+
+        if(sort === "type-desc"){
+            return (
+                compareText(b.type,a.type) ||
+                compareText(a.licence,b.licence) ||
+                compareText(a.name,b.name)
+            );
+        }
+
+        if(sort === "perso-asc"){
+            return (
+                compareText(a.licence,b.licence) ||
+                compareText(
+                    firstPersoName(a),
+                    firstPersoName(b)
+                ) ||
+                compareText(a.name,b.name)
+            );
+        }
+
+        if(sort === "perso-desc"){
+            return (
+                compareText(a.licence,b.licence) ||
+                compareText(
+                    firstPersoName(b),
+                    firstPersoName(a)
+                ) ||
+                compareText(a.name,b.name)
             );
         }
     });
@@ -2033,7 +2153,7 @@ function displayProducts(){
                         loading="lazy"
                         src="${p.image}"
                         onclick="
-                            openModal('${p.image}')
+                            openModal('${p.image}',true)
                         "
                     >
 
@@ -2064,11 +2184,28 @@ function displayProducts(){
 
 /* MODAL */
 
-function openModal(src){
+let modalZoomAllowed = false;
+let modalZoomActive = false;
 
-    document
-        .getElementById("modalImg")
-        .src = src;
+function openModal(src,allowZoom = false){
+
+    const modalImg =
+        document.getElementById("modalImg");
+
+    if(modalImg){
+        modalZoomAllowed =
+            Boolean(allowZoom);
+
+        resetModalZoom();
+
+        modalImg.classList.toggle(
+            "zoom-ready",
+            modalZoomAllowed &&
+            isModalZoomEnabled()
+        );
+
+        modalImg.src = src;
+    }
 
     document
         .getElementById("imageModal")
@@ -2077,9 +2214,103 @@ function openModal(src){
 
 function closeModal(){
 
+    resetModalZoom();
+
     document
         .getElementById("imageModal")
         .style.display = "none";
+}
+
+function isModalZoomEnabled(){
+
+    return window.matchMedia(
+        "(min-width: 769px) and (hover: hover) and (pointer: fine)"
+    ).matches;
+}
+
+function resetModalZoom(){
+
+    modalZoomActive = false;
+
+    const modalImg =
+        document.getElementById("modalImg");
+
+    if(!modalImg){
+        return;
+    }
+
+    modalImg.classList.remove("zoomed");
+    modalImg.style.transformOrigin = "center center";
+}
+
+function updateModalZoom(event){
+
+    if(
+        !modalZoomAllowed ||
+        !modalZoomActive ||
+        !isModalZoomEnabled()
+    ){
+        return;
+    }
+
+    const modalImg =
+        event.currentTarget;
+
+    const rect =
+        modalImg.getBoundingClientRect();
+
+    const x =
+        ((event.clientX - rect.left) / rect.width) * 100;
+
+    const y =
+        ((event.clientY - rect.top) / rect.height) * 100;
+
+    modalImg.classList.add("zoomed");
+    modalImg.style.transformOrigin =
+        `${x}% ${y}%`;
+}
+
+function toggleModalZoom(event){
+
+    if(
+        !modalZoomAllowed ||
+        !isModalZoomEnabled()
+    ){
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    modalZoomActive = !modalZoomActive;
+
+    if(!modalZoomActive){
+        resetModalZoom();
+        return;
+    }
+
+    updateModalZoom(event);
+}
+
+const modalImg =
+    document.getElementById("modalImg");
+
+if(modalImg){
+
+    modalImg.addEventListener(
+        "mousemove",
+        updateModalZoom
+    );
+
+    modalImg.addEventListener(
+        "click",
+        toggleModalZoom
+    );
+
+    modalImg.addEventListener(
+        "mouseleave",
+        resetModalZoom
+    );
 }
 
 /* BUDGET */
@@ -2095,6 +2326,18 @@ const minValue =
 
 const maxValue =
     document.getElementById("maxPriceValue");
+
+minSlider.max =
+    DEFAULT_MAX_PRICE;
+
+maxSlider.max =
+    DEFAULT_MAX_PRICE;
+
+if(parseInt(maxSlider.value) < DEFAULT_MAX_PRICE){
+
+    maxSlider.value =
+        DEFAULT_MAX_PRICE;
+}
 
 function updatePriceDisplay(){
 
@@ -2114,6 +2357,7 @@ function updatePriceDisplay(){
 }
 
 let priceSearchTimeout;
+let isDraggingPriceHitArea = false;
 
 minSlider.addEventListener(
     "input",
@@ -2167,58 +2411,146 @@ maxSlider.addEventListener(
     }
 );
 
+function setPriceFromSliderPointer(e){
+
+    const isNativeSlider =
+        e.target.matches('input[type="range"]');
+
+    if(
+        isNativeSlider &&
+        e.type !== "pointermove"
+    ){
+        return;
+    }
+
+    const track =
+        document.getElementById("sliderTrack");
+
+    const rect =
+        track.getBoundingClientRect();
+
+    const hitTop =
+        rect.top - 22;
+
+    const hitBottom =
+        rect.bottom + 14;
+
+    if(
+        e.clientY < hitTop ||
+        e.clientY > hitBottom
+    ){
+        return;
+    }
+
+    e.preventDefault();
+
+    quickBudgetCheckboxes
+        .forEach(b=>{
+
+            document
+                .getElementById(b.id)
+                .checked = false;
+        });
+
+    const percent =
+        Math.min(
+            1,
+            Math.max(
+                0,
+                (e.clientX - rect.left) /
+                rect.width
+            )
+        );
+
+    const value =
+        Math.round(
+            1 +
+            percent *
+            (DEFAULT_MAX_PRICE - 1)
+        );
+
+    const minDiff =
+        Math.abs(
+            value -
+            parseInt(
+                minSlider.value
+            )
+        );
+
+    const maxDiff =
+        Math.abs(
+            value -
+            parseInt(
+                maxSlider.value
+            )
+        );
+
+    if(minDiff < maxDiff){
+
+        minSlider.value =
+            value;
+
+    } else {
+
+        maxSlider.value =
+            value;
+    }
+
+    updatePriceDisplay();
+
+    clearTimeout(
+        priceSearchTimeout
+    );
+
+    priceSearchTimeout =
+        setTimeout(
+            startSearch,
+            80
+        );
+}
+
 document
-    .getElementById("sliderTrack")
-
+    .querySelector(".range-container")
     .addEventListener(
-        "click",
-        (e)=>{
+        "pointerdown",
+        e=>{
 
-            const rect =
-                e.target
-                .getBoundingClientRect();
+            isDraggingPriceHitArea = true;
 
-            const percent =
-                (e.clientX - rect.left)
-                / rect.width;
+            setPriceFromSliderPointer(e);
+        }
+    );
 
-            const value =
-                Math.round(
-                    percent * 500
-                );
+document
+    .addEventListener(
+        "pointermove",
+        e=>{
 
-            const minDiff =
-                Math.abs(
-                    value -
-                    parseInt(
-                        minSlider.value
-                    )
-                );
-
-            const maxDiff =
-                Math.abs(
-                    value -
-                    parseInt(
-                        maxSlider.value
-                    )
-                );
-
-            if(minDiff < maxDiff){
-
-                minSlider.value =
-                    value;
-
-            } else {
-
-                maxSlider.value =
-                    value;
+            if(!isDraggingPriceHitArea){
+                return;
             }
 
-            updatePriceDisplay();
-
-            startSearch();
+            setPriceFromSliderPointer(e);
         }
-);
+    );
+
+document
+    .addEventListener(
+        "pointerup",
+        ()=>{
+
+            isDraggingPriceHitArea = false;
+        }
+    );
+
+document
+    .addEventListener(
+        "pointercancel",
+        ()=>{
+
+            isDraggingPriceHitArea = false;
+        }
+    );
 
 const quickBudgetCheckboxes = [
 
@@ -2273,7 +2605,7 @@ quickBudgetCheckboxes.forEach(b=>{
 
                 minSlider.value = 1;
 
-                maxSlider.value = 500;
+                maxSlider.value = DEFAULT_MAX_PRICE;
             }
 
             updatePriceDisplay();
@@ -2381,7 +2713,7 @@ function updateSidebarPromoCard(mode, licence = ""){
 
                     event.stopPropagation();
 
-                    openModal('${image}');
+                    openModal('${image}',true);
 
                     return false;
                 "
