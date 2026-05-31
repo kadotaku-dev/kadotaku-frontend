@@ -1539,6 +1539,57 @@ body{
     padding:6px 20px 24px;
 }
 
+.featured-licence-cards-grid{
+
+    display:none;
+
+    grid-template-columns:
+        repeat(8,1fr);
+
+    gap:12px;
+
+    padding:6px 20px 16px;
+
+    margin-bottom:14px;
+
+    border-bottom:
+        1px solid rgba(148,163,184,0.24);
+
+    box-shadow:
+        0 12px 18px -18px rgba(255,79,216,0.62);
+}
+
+.featured-licence-cards-grid .licence-card{
+
+    border-radius:12px;
+}
+
+.featured-licence-cards-grid .licence-card img{
+
+    border-radius:12px;
+}
+
+.featured-licence-cards-grid .licence-card-title{
+
+    left:8px;
+    bottom:8px;
+
+    padding:5px 8px;
+
+    font-size:11px;
+}
+
+.featured-licence-cards-grid .licence-card-expand{
+
+    width:28px;
+    height:28px;
+
+    bottom:5px;
+    right:5px;
+
+    font-size:15px;
+}
+
 .licence-cards-grid.compact{
 
     grid-template-columns:
@@ -2014,6 +2065,28 @@ body{
     gap:10px;
 
     padding:10px;
+}
+
+    .featured-licence-cards-grid{
+
+    grid-template-columns:
+        repeat(4,1fr) !important;
+
+    gap:10px;
+
+    padding:10px 10px 14px;
+
+    margin-bottom:8px;
+}
+
+    .featured-licence-cards-grid .licence-card{
+
+    border-radius:10px;
+}
+
+    .featured-licence-cards-grid .licence-card img{
+
+    border-radius:10px;
 }
 
     /* IMAGES FORMAT UNIFORME */

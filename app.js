@@ -594,11 +594,16 @@ function buildLicenceCards(){
             "licenceCardsGrid"
         );
 
+    const featuredGrid =
+        document.getElementById(
+            "featuredLicenceCardsGrid"
+        );
+
     if(!grid){
         return;
     }
 
-    const licences = animeData
+    const licenceRows = animeData
 
         .filter(r =>
             r[0] &&
@@ -606,31 +611,55 @@ function buildLicenceCards(){
                 showAllLicencesSecretMode ||
                 r[2] == "1"
             )
-        )
-
-        .sort((a,b)=>{
-
-            const favA = Number(a[1]) || 9999;
-            const favB = Number(b[1]) || 9999;
-
-            if(favA !== favB){
-                return favA - favB;
-            }
-
-            return a[0].localeCompare(
-                b[0],
-                'fr',
-                {sensitivity:'base'}
+        );
+    
+    const sortedLicenceRows =
+        [...licenceRows]
+            .sort((a,b)=>
+                a[0].localeCompare(
+                    b[0],
+                    'fr',
+                    {sensitivity:'base'}
+                )
             );
-        })
 
-        .map(r => r[0]);
+    const licences =
+        sortedLicenceRows.map(r => r[0]);
 
-    const buildCardHTML = (licence,index) => `
+    const featuredLicences =
+        licenceRows
+            .filter(r =>{
+
+                const fav =
+                    Number(r[1]);
+
+                return fav >= 1;
+            })
+            .sort((a,b)=>{
+
+                const favA =
+                    Number(a[1]) || 9999;
+
+                const favB =
+                    Number(b[1]) || 9999;
+
+                if(favA !== favB){
+                    return favA - favB;
+                }
+
+                return a[0].localeCompare(
+                    b[0],
+                    'fr',
+                    {sensitivity:'base'}
+                );
+            })
+            .map(r => r[0]);
+
+    const buildCardHTML = (licence,index,extraClass = "") => `
 
             <a
                 href="/?licence=${encodeURIComponent(licence)}"
-                class="licence-card"
+                class="licence-card ${extraClass}"
                 title="${licence}"
             >
 
@@ -655,6 +684,20 @@ function buildLicenceCards(){
 
             </a>
         `;
+
+    if(featuredGrid){
+
+        featuredGrid.innerHTML =
+            featuredLicences
+                .map((licence,index)=>
+                    buildCardHTML(
+                        licence,
+                        index,
+                        "featured-licence-card"
+                    )
+                )
+                .join("");
+    }
 
     const firstBatchSize = 12;
     const chunkSize = 12;
@@ -1130,7 +1173,6 @@ function normalizeText(text){
 function normalizeLicenceKey(text){
 
     return normalizeText(text)
-        .replace(/kimetsunoyaiba/g,"")
         .replace(/[^a-z0-9]/g,"");
 }
 
@@ -2780,6 +2822,11 @@ function handleLicenceRoute(){
             licenceCardsGrid.style.display = "grid";
         }
 
+        document
+            .getElementById("featuredLicenceCardsGrid")
+            ?.style
+            .setProperty("display","grid");
+
         document.getElementById(
             "licenceCardsSizeToggle"
         ).style.display = "block";
@@ -2805,6 +2852,11 @@ function handleLicenceRoute(){
         if(licenceCardsGrid){
             licenceCardsGrid.style.display = "none";
         }
+
+        document
+            .getElementById("featuredLicenceCardsGrid")
+            ?.style
+            .setProperty("display","none");
 
         if(productGrid){
             productGrid.style.display = "grid";
@@ -2853,6 +2905,11 @@ function handleLicenceRoute(){
             licenceCardsGrid.style.display = "none";
         }
 
+        document
+            .getElementById("featuredLicenceCardsGrid")
+            ?.style
+            .setProperty("display","none");
+
         if(productGrid){
             productGrid.style.display = "grid";
         }
@@ -2892,6 +2949,11 @@ function handleLicenceRoute(){
     if(licenceCardsGrid){
         licenceCardsGrid.style.display = "none";
     }
+
+    document
+        .getElementById("featuredLicenceCardsGrid")
+        ?.style
+        .setProperty("display","none");
 
     if(productGrid){
         productGrid.style.display = "grid";
@@ -3313,6 +3375,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 !params.get("licence")
             ){
                 document.getElementById("licenceCardsGrid").style.display = "grid";
+                document.getElementById("featuredLicenceCardsGrid").style.display = "grid";
                 document.getElementById("productGrid").style.display = "none";
                 document.getElementById("licenceCardsSizeToggle").style.display = "block";
             }
