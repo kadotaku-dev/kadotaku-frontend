@@ -224,6 +224,10 @@ content="Explorez le catalogue Kadotaku : figurines, goodies, mugs, peluches, po
             onchange="startSearch()"
         >
 
+            <option value="random">
+                Aléatoire
+            </option>
+
             <option value="price-asc">
                 Prix croissant
             </option>
@@ -238,6 +242,22 @@ content="Explorez le catalogue Kadotaku : figurines, goodies, mugs, peluches, po
 
             <option value="licence-desc">
                 Licence Z → A
+            </option>
+
+            <option value="type-asc">
+                Type A → Z
+            </option>
+
+            <option value="type-desc">
+                Type Z → A
+            </option>
+
+            <option value="perso-asc">
+                Personnage A → Z
+            </option>
+
+            <option value="perso-desc">
+                Personnage Z → A
             </option>
 
         </select>
@@ -298,7 +318,7 @@ content="Explorez le catalogue Kadotaku : figurines, goodies, mugs, peluches, po
                     </span>
 
                     <span id="maxPriceValue">
-                        500€
+                        1000€
                     </span>
 
                 </div>
@@ -312,7 +332,7 @@ content="Explorez le catalogue Kadotaku : figurines, goodies, mugs, peluches, po
                     type="range"
                     id="minPrice"
                     min="1"
-                    max="500"
+                    max="1000"
                     value="1"
                 >
 
@@ -320,8 +340,8 @@ content="Explorez le catalogue Kadotaku : figurines, goodies, mugs, peluches, po
                     type="range"
                     id="maxPrice"
                     min="1"
-                    max="500"
-                    value="500"
+                    max="1000"
+                    value="1000"
                 >
 
             </div>

@@ -4,6 +4,8 @@ import path from "node:path";
 const SITE_URL = "https://www.kadotaku.fr";
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1BWocFxHiryFhBqCUSQGm3JYqD9LbjZfL8K4nKqUUqrM/gviz/tq?tqx=out:csv&sheet=licences";
+const PRODUCTS_API_URL =
+  "https://kadotaku-backend-production.up.railway.app/api/all";
 
 const root = path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1");
 const indexPath = path.join(root, "index.html");
@@ -66,8 +68,144 @@ function licenceUrl(licence) {
   return `${SITE_URL}/licence/${encodeURI(slugLicence(licence))}`;
 }
 
-function pageDescription(licence) {
-  return `Découvrez les meilleures idées cadeaux ${licence} : figurines, goodies, mugs, peluches, posters et produits dérivés pour fans d'anime et de manga.`;
+function splitMultiValues(value) {
+  return String(value || "")
+    .split(/[;,|]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function compareText(a, b) {
+  return String(a || "").localeCompare(String(b || ""), "fr", {
+    sensitivity: "base",
+  });
+}
+
+function normaliseKey(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toLowerCase();
+}
+
+function joinFrenchList(items) {
+  if (items.length <= 1) {
+    return items[0] || "";
+  }
+
+  return `${items.slice(0, -1).join(", ")} et ${items.at(-1)}`;
+}
+
+function joinProductList(items) {
+  return items.join(", ");
+}
+
+function buildSeoData(products) {
+  const byLicence = new Map();
+
+  for (const product of products) {
+    if (product.actif !== "1" || !product.licence) {
+      continue;
+    }
+
+    const licence = product.licence.trim();
+
+    if (!byLicence.has(licence)) {
+      byLicence.set(licence, {
+        types: new Map(),
+        persos: new Map(),
+      });
+    }
+
+    const seoData = byLicence.get(licence);
+
+    if (product.type) {
+      const type = product.type.trim();
+      seoData.types.set(type, (seoData.types.get(type) || 0) + 1);
+    }
+
+    for (const perso of splitMultiValues(product.perso)) {
+      if (normaliseKey(perso) === "divers") {
+        continue;
+      }
+
+      seoData.persos.set(perso, (seoData.persos.get(perso) || 0) + 1);
+    }
+  }
+
+  return byLicence;
+}
+
+function findSeoData(licence, seoDataByLicence) {
+  return (
+    seoDataByLicence.get(licence) ||
+    seoDataByLicence.get(
+      [...seoDataByLicence.keys()].find(
+        (key) => normaliseKey(key) === normaliseKey(licence),
+      ),
+    )
+  );
+}
+
+function topEntries(counter, limit) {
+  return [...counter.entries()]
+    .sort((a, b) => b[1] - a[1] || compareText(a[0], b[0]))
+    .slice(0, limit)
+    .map(([name]) => name);
+}
+
+function productTypeLabel(type) {
+  const lower = String(type || "").toLowerCase();
+
+  if (lower.includes("figurine pop")) return "figurines Pop";
+  if (lower.includes("figurine")) return "figurines";
+  if (lower.includes("repas") || lower.includes("mug") || lower.includes("gourde")) return "mugs et gourdes";
+  if (lower.includes("poster") || lower.includes("toile")) return "posters et toiles";
+  if (lower.includes("parure") || lower.includes("couverture")) return "couvertures";
+  if (lower.includes("vêtement") || lower.includes("chaussure")) return "vêtements";
+  if (lower.includes("cosplay") || lower.includes("wig")) return "cosplays et perruques";
+  if (lower.includes("peluche")) return "peluches";
+  if (lower.includes("manga")) return "mangas";
+  if (lower.includes("lego")) return "sets LEGO";
+  if (lower.includes("jeux")) return "jeux";
+  if (lower.includes("puzzle")) return "puzzles";
+  if (lower.includes("lampe")) return "lampes";
+
+  return type;
+}
+
+function uniqueLabels(labels) {
+  const seen = new Set();
+
+  return labels.filter((label) => {
+    const key = normaliseKey(label);
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+function pageDescription(licence, seoDataByLicence) {
+  const seoData = findSeoData(licence, seoDataByLicence);
+  const types = seoData
+    ? uniqueLabels(topEntries(seoData.types, 6).map(productTypeLabel)).slice(0, 4)
+    : [];
+  const persos = seoData ? topEntries(seoData.persos, 5) : [];
+  const productWords =
+    types.length > 0
+      ? joinProductList(types)
+      : "figurines, goodies, mugs, peluches et posters";
+
+  if (persos.length > 0) {
+    return `Découvrez les meilleures idées cadeaux ${licence} autour de ${joinFrenchList(persos)} : ${productWords}, goodies et produits dérivés pour fans d'anime et de manga.`;
+  }
+
+  return `Découvrez les meilleures idées cadeaux ${licence} : ${productWords}, goodies et produits dérivés pour fans d'anime et de manga.`;
 }
 
 function pageTitle(licence) {
@@ -81,9 +219,9 @@ function replaceTag(html, pattern, replacement) {
   return html.replace(pattern, replacement);
 }
 
-function buildLicenceHtml(baseHtml, licence) {
+function buildLicenceHtml(baseHtml, licence, seoDataByLicence) {
   const title = pageTitle(licence);
-  const description = pageDescription(licence);
+  const description = pageDescription(licence, seoDataByLicence);
   const canonical = licenceUrl(licence);
   const jsonLd = {
     "@context": "https://schema.org",
@@ -173,6 +311,8 @@ function buildCatalogueHtml(baseHtml) {
 
 const baseHtml = await fs.readFile(indexPath, "utf8");
 const csv = await (await fetch(SHEET_CSV_URL)).text();
+const products = await (await fetch(PRODUCTS_API_URL)).json();
+const seoDataByLicence = buildSeoData(products);
 const rows = parseCsv(csv).slice(1);
 const licences = rows
   .filter((row) => row[0] && row[2] === "1")
@@ -184,7 +324,7 @@ for (const licence of licences) {
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(
     path.join(dir, "index.html"),
-    buildLicenceHtml(baseHtml, licence),
+    buildLicenceHtml(baseHtml, licence, seoDataByLicence),
     "utf8",
   );
 }
