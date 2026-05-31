@@ -2198,11 +2198,18 @@ function openModal(src,allowZoom = false){
 
         resetModalZoom();
 
+        modalImg.classList.add("loading");
+        modalImg.removeAttribute("src");
+
         modalImg.classList.toggle(
             "zoom-ready",
             modalZoomAllowed &&
             isModalZoomEnabled()
         );
+
+        modalImg.onload = ()=>{
+            modalImg.classList.remove("loading");
+        };
 
         modalImg.src = src;
     }
@@ -2215,6 +2222,14 @@ function openModal(src,allowZoom = false){
 function closeModal(){
 
     resetModalZoom();
+
+    const modalImg =
+        document.getElementById("modalImg");
+
+    if(modalImg){
+        modalImg.classList.add("loading");
+        modalImg.removeAttribute("src");
+    }
 
     document
         .getElementById("imageModal")

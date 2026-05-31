@@ -1347,6 +1347,10 @@ body{
     transition:transform 0.16s ease;
 }
 
+.modal img.loading{
+    visibility:hidden;
+}
+
 @media (min-width:769px) and (hover:hover) and (pointer:fine){
 
     .modal img.zoom-ready{
