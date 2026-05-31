@@ -389,18 +389,15 @@ function buildSidebar(){
                     onchange="startSearch()"
                 >
 
-                ${type}
+                <span class="filter-label-text">${type}</span>
 
             </label>
         `).join("");
 
-    const sortedLicences = [
-        ...getSortedLicences().priority,
-        ...getSortedLicences().alphabetical
-    ];
+    const sortedLicences =
+        getSortedLicences();
 
-    licenceList.innerHTML =
-        sortedLicences.map(licence=>{
+    const renderLicenceBlock = (licence,isFavorite = false)=>{
 
         const persos = [...new Set(
 
@@ -437,7 +434,7 @@ function buildSidebar(){
 
         return `
 
-            <div class="licence-block">
+            <div class="licence-block ${isFavorite ? "favorite-licence-block" : ""}">
 
                 <label>
 
@@ -463,7 +460,33 @@ function buildSidebar(){
 
             </div>
         `;
-    }).join("");
+    };
+
+    const priorityHTML =
+        sortedLicences.priority.length
+            ? `
+                <div class="favorite-licence-section">
+                    ${sortedLicences.priority
+                        .map(licence =>
+                            renderLicenceBlock(
+                                licence,
+                                true
+                            )
+                        )
+                        .join("")}
+                </div>
+
+                <div class="licence-list-separator"></div>
+            `
+            : "";
+
+    licenceList.innerHTML =
+        priorityHTML +
+        sortedLicences.all
+            .map(licence =>
+                renderLicenceBlock(licence)
+            )
+            .join("");
 }
 
 /* SHOW HIDE PERSOS */
@@ -922,13 +945,10 @@ function buildTopMenus(){
         </div>
     `;
 
-    const sortedLicences = [
-        ...getSortedLicences().priority,
-        ...getSortedLicences().alphabetical
-    ];
+    const sortedLicences =
+        getSortedLicences();
 
-    const licencesHTML =
-        sortedLicences.map(licence=>{
+    const renderTopLicenceItem = (licence,isFavorite = false)=>{
 
         const persos = [
             ...(persosByLicence.get(licence) || [])
@@ -936,7 +956,7 @@ function buildTopMenus(){
 
         const submenu = `
             <div
-                class="dropdown-item"
+                class="dropdown-item ${isFavorite ? "favorite-dropdown-item" : ""}"
                 data-licence="${encodeURIComponent(licence)}"
                 onclick="
                     quickLicence(
@@ -966,7 +986,7 @@ function buildTopMenus(){
                     closeTopMenusOnMobile();
                     "
                 >
-                    ${perso}
+                    <span class="filter-label-text">${perso}</span>
                 </div>
             `).join("")}
         `;
@@ -999,7 +1019,7 @@ function buildTopMenus(){
                         class="top-parent-link"
                         data-licence="${encodeURIComponent(licence)}"
                     >
-                        ${licence}
+                    <span class="filter-label-text">${licence}</span>
                     </span>
 
                     <span class="submenu-arrow"></span>
@@ -1014,7 +1034,33 @@ function buildTopMenus(){
 
             </div>
         `;
-    }).join("");
+    };
+
+    const priorityLicencesHTML =
+        sortedLicences.priority.length
+            ? `
+                <div class="favorite-dropdown-section">
+                    ${sortedLicences.priority
+                        .map(licence =>
+                            renderTopLicenceItem(
+                                licence,
+                                true
+                            )
+                        )
+                        .join("")}
+                </div>
+
+                <div class="licence-separator"></div>
+            `
+            : "";
+
+    const licencesHTML =
+        priorityLicencesHTML +
+        sortedLicences.all
+            .map(licence =>
+                renderTopLicenceItem(licence)
+            )
+            .join("");
 
     licencesDropdown.innerHTML = `
         <div class="dropdown-scroll">
@@ -1134,8 +1180,6 @@ const priority =
 
     [...licencesMap.values()]
 
-    .filter(l => l.priority === 999999)
-
     .sort((a,b)=>
 
             a.name.localeCompare(
@@ -1151,6 +1195,11 @@ const priority =
         priorityLicences.map(l=>l.name),
 
     alphabetical:
+        alphabeticalLicences
+            .filter(l => l.priority === 999999)
+            .map(l=>l.name),
+
+    all:
         alphabeticalLicences.map(l=>l.name)
 };
 }
@@ -2829,7 +2878,7 @@ function handleLicenceRoute(){
 
         document.getElementById(
             "licenceCardsSizeToggle"
-        ).style.display = "block";
+        ).style.display = "flex";
 
         if(productGrid){
             productGrid.style.display = "none";
@@ -2958,6 +3007,10 @@ function handleLicenceRoute(){
     if(productGrid){
         productGrid.style.display = "grid";
     }
+
+    document.getElementById(
+        "licenceCardsSizeToggle"
+    ).style.display = "none";
 
     startSearch();
 }
@@ -3377,7 +3430,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 document.getElementById("licenceCardsGrid").style.display = "grid";
                 document.getElementById("featuredLicenceCardsGrid").style.display = "grid";
                 document.getElementById("productGrid").style.display = "none";
-                document.getElementById("licenceCardsSizeToggle").style.display = "block";
+                document.getElementById("licenceCardsSizeToggle").style.display = "flex";
             }
 
             alert(

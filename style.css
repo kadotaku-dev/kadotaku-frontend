@@ -612,6 +612,35 @@ body{
     background:rgba(255,255,255,0.08);
 }
 
+.favorite-dropdown-section{
+
+    margin:2px 0 8px;
+
+    padding:6px;
+
+    border-radius:12px;
+
+    background:rgba(255,79,216,0.08);
+
+    border:1px solid rgba(255,79,216,0.18);
+}
+
+.favorite-dropdown-item{
+
+    color:#f9a8d4;
+
+    font-weight:700;
+}
+
+.favorite-dropdown-item > .has-submenu::before{
+
+    content:"★";
+
+    margin-right:6px;
+
+    color:#f472b6;
+}
+
 /* FLECHES */
 
 .has-submenu{
@@ -833,7 +862,13 @@ body{
 
 .sidebar label{
 
-    display:block;
+    display:grid;
+
+    grid-template-columns:auto 1fr;
+
+    align-items:start;
+
+    column-gap:7px;
 
     padding:6px 7px 4px;
 
@@ -860,6 +895,65 @@ body{
     font-size:14px;
 
     color:#cbd5e1;
+}
+
+.favorite-licence-section{
+
+    margin-top:8px;
+    margin-bottom:10px;
+
+    padding:8px 8px 6px;
+
+    border-radius:12px;
+
+    background:rgba(255,79,216,0.08);
+
+    border:1px solid rgba(255,79,216,0.18);
+}
+
+.favorite-licence-block{
+
+    transform:translateX(4px);
+}
+
+.favorite-licence-block > label{
+
+    color:#f9a8d4;
+
+    font-weight:700;
+
+    position:relative;
+
+    padding-left:24px;
+}
+
+.favorite-licence-block > label::before{
+
+    content:"★";
+
+    margin-right:6px;
+
+    color:#f472b6;
+
+    position:absolute;
+
+    left:7px;
+
+    top:7px;
+}
+
+.licence-list-separator{
+
+    height:1px;
+
+    margin:10px 4px 12px;
+
+    background:linear-gradient(
+        90deg,
+        rgba(148,163,184,0),
+        rgba(148,163,184,0.42),
+        rgba(148,163,184,0)
+    );
 }
 
 /* BUDGET */
@@ -936,6 +1030,16 @@ body{
     position:relative;
     height:70px;
     cursor:pointer;
+}
+
+.sidebar label input{
+
+    margin-top:3px;
+}
+
+.filter-label-text{
+
+    min-width:0;
 }
 
 .range-container::after{
@@ -1510,8 +1614,6 @@ body{
     transition:0.2s;
 
     z-index:25;
-
-    display:flex;
 
     align-items:center;
 
