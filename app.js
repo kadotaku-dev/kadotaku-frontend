@@ -4,6 +4,10 @@ const API_URL =
 const animeSheetURL =
 "https://docs.google.com/spreadsheets/d/1BWocFxHiryFhBqCUSQGm3JYqD9LbjZfL8K4nKqUUqrM/gviz/tq?tqx=out:csv&sheet=licences";
 
+const ADMIN_SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbwDt9GgCP1h2sSWD_7cLTMf3jBad8uduL2Mzkv7xzE9-cidD_oz06K4Z6QsXk43r892/exec";
+const ADMIN_TOKEN_PARAM = "kadotakuAdmin";
+
 let allProducts = [];
 let allAnime = [];
 let animeData = [];
@@ -29,6 +33,220 @@ let favoritesMode = false;
 let routeLicenceFilter = "";
 
 routeLicenceFilter = "";
+
+function escapeHtml(value){
+
+    return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
+}
+
+function escapeAttr(value){
+
+    return escapeHtml(value);
+}
+
+function initAdminMode(){
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const token =
+        params.get(ADMIN_TOKEN_PARAM);
+
+    if(token){
+
+        sessionStorage.setItem(
+            "kadotaku_admin_token",
+            token
+        );
+
+        sessionStorage.setItem(
+            "kadotaku_admin_enabled",
+            "1"
+        );
+
+        params.delete(ADMIN_TOKEN_PARAM);
+
+        const cleanQuery =
+            params.toString();
+
+        const cleanUrl =
+            window.location.pathname +
+            (cleanQuery ? `?${cleanQuery}` : "") +
+            window.location.hash;
+
+        window.history.replaceState(
+            {},
+            "",
+            cleanUrl
+        );
+    }
+
+    document.body.classList.toggle(
+        "admin-mode",
+        isAdminMode()
+    );
+}
+
+function isAdminMode(){
+
+    return (
+        sessionStorage.getItem(
+            "kadotaku_admin_enabled"
+        ) === "1" &&
+        Boolean(
+            sessionStorage.getItem(
+                "kadotaku_admin_token"
+            )
+        )
+    );
+}
+
+function getAdminToken(){
+
+    return sessionStorage.getItem(
+        "kadotaku_admin_token"
+    ) || "";
+}
+
+function showAdminMessage(message,type = "info"){
+
+    let box =
+        document.getElementById(
+            "adminMessage"
+        );
+
+    if(!box){
+
+        box =
+            document.createElement("div");
+
+        box.id = "adminMessage";
+        box.className = "admin-message";
+
+        document.body.appendChild(box);
+    }
+
+    box.textContent = message;
+    box.className =
+        `admin-message ${type}`;
+
+    clearTimeout(
+        showAdminMessage.timer
+    );
+
+    showAdminMessage.timer =
+        setTimeout(()=>{
+            box.remove();
+        },3200);
+}
+
+async function adminHideProduct(button){
+
+    if(!isAdminMode()){
+        return;
+    }
+
+    if(!ADMIN_SCRIPT_URL){
+
+        showAdminMessage(
+            "URL Apps Script admin manquante",
+            "error"
+        );
+
+        return;
+    }
+
+    const card =
+        button.closest(".card");
+
+    const productUrl =
+        button.dataset.productUrl || "";
+
+    const productName =
+        button.dataset.productName || "";
+
+    if(
+        !confirm(
+            `Masquer cet article dans Kadotaku ?\n\n${productName}`
+        )
+    ){
+        return;
+    }
+
+    button.disabled = true;
+    button.classList.add("loading");
+
+    try{
+
+        await fetch(
+            ADMIN_SCRIPT_URL,
+            {
+                method:"POST",
+                mode:"no-cors",
+                headers:{
+                    "Content-Type":
+                        "text/plain;charset=utf-8"
+                },
+                body:JSON.stringify({
+                    action:"deactivateProduct",
+                    token:getAdminToken(),
+                    productUrl,
+                    productName,
+                    productImage:
+                        button.dataset.productImage || "",
+                    licence:
+                        button.dataset.licence || ""
+                })
+            }
+        );
+
+        if(card){
+            card.classList.add(
+                "admin-removed"
+            );
+        }
+
+        allProducts =
+            allProducts.filter(
+                p => p.url !== productUrl
+            );
+
+        allResults =
+            allResults.filter(
+                p => p.url !== productUrl
+            );
+
+        setTimeout(()=>{
+            card?.remove();
+        },180);
+
+        showAdminMessage(
+            "Demande envoyée : actif = 0",
+            "success"
+        );
+
+    } catch(error){
+
+        console.error(error);
+
+        button.disabled = false;
+        button.classList.remove("loading");
+
+        showAdminMessage(
+            "Erreur pendant l'envoi admin",
+            "error"
+        );
+    }
+}
+
+initAdminMode();
 
 function toggleWaifuMode(){
 
@@ -2223,11 +2441,36 @@ function displayProducts(){
 
     allResults.forEach(p=>{
 
+        const adminButton =
+            isAdminMode()
+
+            ? `
+                    <button
+                        class="admin-hide-product-btn"
+                        data-product-url="${escapeAttr(p.url)}"
+                        data-product-name="${escapeAttr(p.name)}"
+                        data-product-image="${escapeAttr(p.image)}"
+                        data-licence="${escapeAttr(p.licence)}"
+                        onclick="
+                            event.stopPropagation();
+                            adminHideProduct(this)
+                        "
+                        title="Masquer cet article"
+                        aria-label="Masquer cet article"
+                    >
+                        x
+                    </button>
+                `
+
+            : "";
+
         html += `
 
             <div class="card">
 
                 <div class="card-image-wrapper">
+
+                    ${adminButton}
 
                     <button
                         class="favorite-btn ${isFavorite(p.url) ? 'active' : ''}"
@@ -2242,24 +2485,24 @@ function displayProducts(){
 
                     <img
                         loading="lazy"
-                        src="${p.image}"
+                        src="${escapeAttr(p.image)}"
                         onclick="
-                            openModal('${p.image}',true)
+                            openModal('${escapeAttr(p.image)}',true)
                         "
                     >
 
                 </div>
 
-                <p title="${p.name}">
-                      ${p.name}
+                <p title="${escapeAttr(p.name)}">
+                      ${escapeHtml(p.name)}
                 </p>
 
                 <div class="price">
-                    ${p.price}
+                    ${escapeHtml(p.price)}
                 </div>
 
                 <a
-                    href="${p.url}"
+                    href="${escapeAttr(p.url)}"
                     target="_blank"
                     class="amazon-btn"
                 >
