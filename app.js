@@ -61,6 +61,15 @@ function escapeAttr(value){
     return escapeHtml(value);
 }
 
+function slugLicence(licence){
+
+    return String(licence || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[.\s]+/g,"-")
+        .replace(/-+/g,"-");
+}
+
 function initAdminMode(){
 
     const params =
@@ -1917,9 +1926,8 @@ function quickType(type){
 
 function goToLicencePage(licence){
 
-    const slug = licence
-        .toLowerCase()
-        .replaceAll(" ","-");
+    const slug =
+        slugLicence(licence);
 
     const isLocalHost =
         window.location.hostname === "127.0.0.1" ||
@@ -3477,9 +3485,7 @@ function handleLicenceRoute(){
 
         licence = allAnime.find(l =>
 
-            l.toLowerCase()
-                .replaceAll(" ","-")
-            === slug
+            slugLicence(l) === slug
         ) || "";
     }
 

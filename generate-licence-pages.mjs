@@ -71,7 +71,11 @@ function escapeHtml(value) {
 }
 
 function slugLicence(licence) {
-  return licence.toLowerCase().replaceAll(" ", "-");
+  return String(licence || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[.\s]+/g, "-")
+    .replace(/-+/g, "-");
 }
 
 function licenceUrl(licence) {
