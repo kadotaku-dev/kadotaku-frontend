@@ -7,12 +7,24 @@ const animeSheetURL =
 const ADMIN_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbwDt9GgCP1h2sSWD_7cLTMf3jBad8uduL2Mzkv7xzE9-cidD_oz06K4Z6QsXk43r892/exec";
 const ADMIN_TOKEN_PARAM = "kadotakuAdmin";
+const LICENCE_GROUPS = {
+    "Dragon Ball Universe": [
+        "Dragon Ball",
+        "Dragon Ball Daima",
+        "Dragon Ball GT",
+        "Dragon Ball Z",
+        "Dragon Ball Super",
+        "Dragon Ball Games"
+    ]
+};
 
 let allProducts = [];
 let allAnime = [];
 let animeData = [];
 let allTypes = [];
 let allResults = [];
+let productsLoaded = false;
+let userSelectedSort = false;
 let showAllLicencesSecretMode = false;
 let secretClickCount = 0;
 let secretClickTimer = null;
@@ -448,6 +460,77 @@ function prepareProduct(product){
     return product;
 }
 
+function getLicenceGroup(licence){
+
+    const licenceKey =
+        normalizeLicenceKey(licence);
+
+    const groupEntry =
+        Object.entries(LICENCE_GROUPS)
+            .find(([groupName]) =>
+                normalizeLicenceKey(groupName) === licenceKey
+            );
+
+    if(!groupEntry){
+        return [];
+    }
+
+    return groupEntry[1];
+}
+
+function productMatchesLicence(product,licence){
+
+    if(!licence){
+        return true;
+    }
+
+    const licenceKey =
+        normalizeLicenceKey(licence);
+
+    const productKey =
+        product._licenceKey ||
+        normalizeLicenceKey(product.licence);
+
+    if(productKey === licenceKey){
+        return true;
+    }
+
+    return getLicenceGroup(licence)
+        .some(groupLicence =>
+            normalizeLicenceKey(groupLicence) === productKey
+        );
+}
+
+function licencesEquivalent(a,b){
+
+    return productMatchesLicence(
+        {
+            licence:a,
+            _licenceKey:normalizeLicenceKey(a)
+        },
+        b
+    );
+}
+
+function getProductsForLicence(licence){
+
+    return allProducts.filter(product =>
+        productMatchesLicence(product,licence)
+    );
+}
+
+function getPersosForLicence(licence){
+
+    return [...new Set(
+        getProductsForLicence(licence)
+            .flatMap(p => p._persos || [])
+            .filter(perso =>
+                perso &&
+                normalizeLicenceKey(perso) !== "divers"
+            )
+    )].sort();
+}
+
 function getLicenceAliases(row){
 
     return [
@@ -509,6 +592,38 @@ function findPersoFromSearch(query){
         }) || "";
 }
 
+function isHomeRoute(){
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    return (
+        window.location.pathname === "/" &&
+        !params.get("page") &&
+        !params.get("licence")
+    );
+}
+
+function showProductsLoadingMessage(){
+
+    const grid =
+        document.getElementById(
+            "productGrid"
+        );
+
+    if(!grid){
+        return;
+    }
+
+    grid.innerHTML = `
+        <div class="loading-message">
+            Chargement des produits...
+        </div>
+    `;
+}
+
 /* LOAD */
 
 async function loadData(){
@@ -517,19 +632,15 @@ async function loadData(){
 
     console.time("TOTAL");
 
-    console.time("FETCH");
+    console.time("LICENCES_FETCH");
 
-    const [
-        animeRes,
-        productsRes
-    ] = await Promise.all([
+    const productsPromise =
+        fetch(API_URL + "/api/all");
 
-        fetch(animeSheetURL),
+    const animeRes =
+        await fetch(animeSheetURL);
 
-        fetch(API_URL + "/api/all")
-    ]);
-
-    console.timeEnd("FETCH");
+    console.timeEnd("LICENCES_FETCH");
 
     const animeText =
         await animeRes.text();
@@ -543,12 +654,31 @@ async function loadData(){
     .filter(r => showAllLicencesSecretMode || r[2] == "1")
     .map(r => r[0]);
 
+    console.time("HOME_RENDER");
+
+    buildLicenceCards();
+
+    if(isHomeRoute()){
+        handleLicenceRoute();
+    }
+
+    console.timeEnd("HOME_RENDER");
+
+    console.time("PRODUCTS_FETCH");
+
+    const productsRes =
+        await productsPromise;
+
+    console.timeEnd("PRODUCTS_FETCH");
+
     console.time("JSON");
 
     allProducts =
         (await productsRes.json()).map(
             prepareProduct
         );
+
+    productsLoaded = true;
 
     console.timeEnd("JSON");
 
@@ -558,14 +688,6 @@ async function loadData(){
         .filter(Boolean)
     )].sort();
 
-console.time("FIRST_RENDER");
-
-if(window.location.pathname !== "/"){
-    startSearch();
-}
-
-console.timeEnd("FIRST_RENDER");
-
 setTimeout(()=>{
 
     console.time("MENUS");
@@ -573,8 +695,6 @@ setTimeout(()=>{
     buildSidebar();
 
     buildTopMenus();
-
-    buildLicenceCards();
 
     handleLicenceRoute();
     
@@ -617,20 +737,8 @@ function buildSidebar(){
 
     const renderLicenceBlock = (licence,isFavorite = false)=>{
 
-        const persos = [...new Set(
-
-            allProducts
-
-            .filter(p => p.licence === licence)
-
-            .flatMap(p => p._persos || [])
-
-            .filter(perso =>
-                perso &&
-                normalizeLicenceKey(perso) !== "divers"
-            )
-
-        )].sort();
+        const persos =
+            getPersosForLicence(licence);
 
         const persosHTML =
             persos.map(perso => `
@@ -1045,6 +1153,52 @@ function buildTopMenus(){
         }
     });
 
+    animeData
+        .filter(row =>
+            row[0] &&
+            (showAllLicencesSecretMode || row[2] == "1") &&
+            getLicenceGroup(row[0]).length
+        )
+        .forEach(row=>{
+
+            const aggregateLicence = row[0];
+
+            getProductsForLicence(aggregateLicence)
+                .forEach(product=>{
+
+                    if(product.type){
+
+                        if(!licencesByType.has(product.type)){
+                            licencesByType.set(product.type,new Set());
+                        }
+
+                        licencesByType
+                            .get(product.type)
+                            .add(aggregateLicence);
+                    }
+
+                    const productPersos =
+                        (product._persos || [])
+                            .filter(perso =>
+                                normalizeLicenceKey(perso) !== "divers"
+                            );
+
+                    if(productPersos.length){
+
+                        if(!persosByLicence.has(aggregateLicence)){
+                            persosByLicence.set(aggregateLicence,new Set());
+                        }
+
+                        productPersos.forEach(perso=>{
+
+                            persosByLicence
+                                .get(aggregateLicence)
+                                .add(perso);
+                        });
+                    }
+                });
+        });
+
     const typesHTML =
         allTypes.map(type=>{
 
@@ -1168,9 +1322,8 @@ function buildTopMenus(){
 
     const renderTopLicenceItem = (licence,isFavorite = false)=>{
 
-        const persos = [
-            ...(persosByLicence.get(licence) || [])
-        ].sort();
+        const persos =
+            getPersosForLicence(licence);
 
         const submenu = `
             <div
@@ -1340,16 +1493,45 @@ function getSortedLicences(){
 
     const licencesMap = new Map();
 
+    animeData
+        .filter(row =>
+            row[0] &&
+            (
+                showAllLicencesSecretMode ||
+                row[2] == "1"
+            )
+        )
+        .forEach(row=>{
+
+            licencesMap.set(
+                row[0],
+                {
+                    name:row[0],
+                    priority:Number(row[1]) || 999999
+                }
+            );
+        });
+
     allProducts.forEach(p=>{
 
         if(!p.licence) return;
 
-        const existing =
-            licencesMap.get(p.licence);
+        const existingKey =
+            [...licencesMap.keys()]
+                .find(licence =>
+                    normalizeLicenceKey(licence) ===
+                    normalizeLicenceKey(p.licence)
+                );
+
+        if(existingKey){
+            return;
+        }
 
         const animeRow =
     animeData.find(
-        r => r[0] === p.licence
+        r =>
+            normalizeLicenceKey(r[0]) ===
+            normalizeLicenceKey(p.licence)
     );
 
 const priority =
@@ -1361,10 +1543,6 @@ const priority =
 
     : 999999;
 
-        if(
-            !existing ||
-            priority < existing.priority
-        ){
             licencesMap.set(
                 p.licence,
                 {
@@ -1372,7 +1550,6 @@ const priority =
                     priority
                 }
             );
-        }
     });
 
     const priorityLicences =
@@ -1498,6 +1675,72 @@ function ensureSortOptions(){
     sortSelect.value =
         expectedOptions.some(([value]) => value === currentValue)
             ? currentValue
+            : "random";
+
+    sortSelect.onchange = handleSortChange;
+}
+
+function handleSortChange(){
+
+    userSelectedSort = true;
+
+    startSearch();
+}
+
+function hasActiveProductContext(){
+
+    const searchInput =
+        document.getElementById("searchInput");
+
+    const searchText =
+        searchInput
+            ? searchInput.value.trim()
+            : "";
+
+    const hasSidebarFilter =
+        Boolean(
+            document.querySelector("#typeList input:checked") ||
+            document.querySelector(".licence-checkbox:checked") ||
+            document.querySelector(".perso-checkbox:checked")
+        );
+
+    const minPrice =
+        Number(minSlider?.value || 1);
+
+    const maxPrice =
+        Number(maxSlider?.value || DEFAULT_MAX_PRICE);
+
+    const hasPriceFilter =
+        minPrice !== 1 ||
+        maxPrice !== DEFAULT_MAX_PRICE;
+
+    return Boolean(
+        routeLicenceFilter ||
+        quickTopType ||
+        searchText ||
+        waifuMode ||
+        favoritesMode ||
+        hasSidebarFilter ||
+        hasPriceFilter
+    );
+}
+
+function syncDefaultSortForContext(){
+
+    if(userSelectedSort){
+        return;
+    }
+
+    const sortSelect =
+        document.getElementById("sortSelect");
+
+    if(!sortSelect){
+        return;
+    }
+
+    sortSelect.value =
+        hasActiveProductContext()
+            ? "perso-asc"
             : "random";
 }
 
@@ -2062,6 +2305,13 @@ function startSearch(){
 
     switchHomeToCatalogueView();
 
+    if(!productsLoaded){
+
+        showProductsLoadingMessage();
+
+        return;
+    }
+
     const selectedTypes =
 
         [...document.querySelectorAll(
@@ -2126,6 +2376,8 @@ function startSearch(){
     const searchedPersoKey =
         normalizeLicenceKey(searchedPerso);
 
+    syncDefaultSortForContext();
+
     const sort =
         document.getElementById(
             'sortSelect'
@@ -2144,15 +2396,20 @@ function startSearch(){
 
         if(
             routeLicenceFilter &&
-            p._licenceKey !==
-            routeLicenceKey
+            !productMatchesLicence(
+                p,
+                routeLicenceFilter
+            )
         ){
             return false;
         }
 
         if(
             searchedLicence &&
-            p._licenceKey !== searchedLicenceKey
+            !productMatchesLicence(
+                p,
+                searchedLicence
+            )
         ){
             return false;
         }
@@ -2188,13 +2445,32 @@ function startSearch(){
 
         if(
             selectedLicences.length &&
-            !selectedLicenceSet.has(p.licence)
+            !selectedLicences.some(licence =>
+                productMatchesLicence(
+                    p,
+                    licence
+                )
+            )
         ){
             return false;
         }
 
         const persosForLicence =
-            selectedPersosByLicence.get(p.licence);
+            new Set();
+
+        selectedPersosByLicence.forEach((persos,licence)=>{
+
+            if(
+                productMatchesLicence(
+                    p,
+                    licence
+                )
+            ){
+                persos.forEach(perso =>
+                    persosForLicence.add(perso)
+                );
+            }
+        });
 
         if(
             persosForLicence &&
@@ -2293,7 +2569,9 @@ function startSearch(){
                     firstPersoName(a),
                     firstPersoName(b)
                 ) ||
-                compareText(a.name,b.name)
+                compareText(a.type,b.type) ||
+                compareText(a.name,b.name) ||
+                compareText(a.url,b.url)
             );
         }
 
@@ -2304,7 +2582,9 @@ function startSearch(){
                     firstPersoName(b),
                     firstPersoName(a)
                 ) ||
-                compareText(a.name,b.name)
+                compareText(a.type,b.type) ||
+                compareText(a.name,b.name) ||
+                compareText(a.url,b.url)
             );
         }
     });

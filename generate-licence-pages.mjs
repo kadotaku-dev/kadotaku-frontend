@@ -6,6 +6,16 @@ const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1BWocFxHiryFhBqCUSQGm3JYqD9LbjZfL8K4nKqUUqrM/gviz/tq?tqx=out:csv&sheet=licences";
 const PRODUCTS_API_URL =
   "https://kadotaku-backend-production.up.railway.app/api/all";
+const LICENCE_GROUPS = {
+  "Dragon Ball Universe": [
+    "Dragon Ball",
+    "Dragon Ball Daima",
+    "Dragon Ball GT",
+    "Dragon Ball Z",
+    "Dragon Ball Super",
+    "Dragon Ball Games",
+  ],
+};
 
 const root = path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1");
 const indexPath = path.join(root, "index.html");
@@ -89,6 +99,25 @@ function normaliseKey(value) {
     .toLowerCase();
 }
 
+function getLicenceGroup(licence) {
+  const licenceKey = normaliseKey(licence);
+  const groupEntry = Object.entries(LICENCE_GROUPS).find(
+    ([groupName]) => normaliseKey(groupName) === licenceKey,
+  );
+
+  return groupEntry ? groupEntry[1] : [];
+}
+
+function productMatchesLicence(product, licence) {
+  if (normaliseKey(product.licence) === normaliseKey(licence)) {
+    return true;
+  }
+
+  return getLicenceGroup(licence).some(
+    (groupLicence) => normaliseKey(groupLicence) === normaliseKey(product.licence),
+  );
+}
+
 function joinFrenchList(items) {
   if (items.length <= 1) {
     return items[0] || "";
@@ -131,6 +160,31 @@ function buildSeoData(products) {
       }
 
       seoData.persos.set(perso, (seoData.persos.get(perso) || 0) + 1);
+    }
+  }
+
+  for (const [groupName, childLicences] of Object.entries(LICENCE_GROUPS)) {
+    const groupData = {
+      types: new Map(),
+      persos: new Map(),
+    };
+
+    for (const [licence, seoData] of byLicence.entries()) {
+      if (!childLicences.some((child) => normaliseKey(child) === normaliseKey(licence))) {
+        continue;
+      }
+
+      for (const [type, count] of seoData.types.entries()) {
+        groupData.types.set(type, (groupData.types.get(type) || 0) + count);
+      }
+
+      for (const [perso, count] of seoData.persos.entries()) {
+        groupData.persos.set(perso, (groupData.persos.get(perso) || 0) + count);
+      }
+    }
+
+    if (groupData.types.size || groupData.persos.size) {
+      byLicence.set(groupName, groupData);
     }
   }
 
