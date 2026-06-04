@@ -501,6 +501,19 @@ function productMatchesLicence(product,licence){
         );
 }
 
+function getProductSortLicence(product){
+
+    if(
+        routeLicenceFilter &&
+        getLicenceGroup(routeLicenceFilter).length &&
+        productMatchesLicence(product,routeLicenceFilter)
+    ){
+        return routeLicenceFilter;
+    }
+
+    return product.licence;
+}
+
 function licencesEquivalent(a,b){
 
     return productMatchesLicence(
@@ -2564,7 +2577,10 @@ function startSearch(){
 
         if(sort === "perso-asc"){
             return (
-                compareText(a.licence,b.licence) ||
+                compareText(
+                    getProductSortLicence(a),
+                    getProductSortLicence(b)
+                ) ||
                 compareText(
                     firstPersoName(a),
                     firstPersoName(b)
@@ -2577,7 +2593,10 @@ function startSearch(){
 
         if(sort === "perso-desc"){
             return (
-                compareText(a.licence,b.licence) ||
+                compareText(
+                    getProductSortLicence(a),
+                    getProductSortLicence(b)
+                ) ||
                 compareText(
                     firstPersoName(b),
                     firstPersoName(a)
