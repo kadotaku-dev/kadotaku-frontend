@@ -2100,7 +2100,7 @@ function updateActiveFilters(){
                             )
                         "
                     >
-                        âœ•
+                        &times;
                     </span>
 
                 </div>
