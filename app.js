@@ -4,6 +4,9 @@ const API_URL =
 const animeSheetURL =
 "https://docs.google.com/spreadsheets/d/1BWocFxHiryFhBqCUSQGm3JYqD9LbjZfL8K4nKqUUqrM/gviz/tq?tqx=out:csv&sheet=licences";
 
+const productsSheetURL =
+"https://docs.google.com/spreadsheets/d/1BWocFxHiryFhBqCUSQGm3JYqD9LbjZfL8K4nKqUUqrM/gviz/tq?tqx=out:csv&sheet=produits";
+
 const ADMIN_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbwDt9GgCP1h2sSWD_7cLTMf3jBad8uduL2Mzkv7xzE9-cidD_oz06K4Z6QsXk43r892/exec";
 const ADMIN_TOKEN_PARAM = "kadotakuAdmin";
@@ -479,6 +482,43 @@ function prepareProduct(product,index){
     return product;
 }
 
+async function loadProductsFromSheet(){
+
+    const response =
+        await fetch(
+            productsSheetURL,
+            {
+                cache:"no-store"
+            }
+        );
+
+    if(!response.ok){
+        throw new Error(
+            `Chargement Sheet impossible (${response.status})`
+        );
+    }
+
+    const rows =
+        parseCSV(
+            await response.text()
+        );
+
+    rows.shift();
+
+    return rows.map(row => ({
+        licence:row[0] || "",
+        type:row[1] || "",
+        name:row[2] || "",
+        price:row[3] || "",
+        image:row[4] || "",
+        url:row[5] || "",
+        priority:row[6] || "",
+        actif:row[7] || "",
+        waifu:row[8] || "",
+        perso:row[9] || ""
+    }));
+}
+
 function getLicenceGroup(licence){
 
     const licenceKey =
@@ -668,7 +708,7 @@ async function loadData(){
 
     const productsPromise =
         fetch(
-            API_URL + "/api/all?fresh=" + Date.now(),
+            API_URL + "/api/all",
             {
                 cache:"no-store"
             }
@@ -710,8 +750,25 @@ async function loadData(){
 
     console.time("JSON");
 
+    let products =
+        await productsRes.json();
+
+    if(!Array.isArray(products)){
+        products = [];
+    }
+
+    if(products.length === 0){
+
+        console.warn(
+            "API produits vide, chargement direct depuis Google Sheets."
+        );
+
+        products =
+            await loadProductsFromSheet();
+    }
+
     allProducts =
-        (await productsRes.json())
+        products
             .filter(product =>
                 String(
                     product.actif ?? ""
