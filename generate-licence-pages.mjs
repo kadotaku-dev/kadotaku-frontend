@@ -375,8 +375,19 @@ const rows = parseCsv(csv).slice(1);
 const licences = rows
   .filter((row) => row[0] && row[2] === "1")
   .map((row) => row[0].trim());
+const onlyIndex = process.argv.indexOf("--only");
+const onlyLicence = onlyIndex >= 0 ? process.argv[onlyIndex + 1] : "";
+const licencesToGenerate = onlyLicence
+  ? licences.filter(
+      (licence) => normaliseKey(licence) === normaliseKey(onlyLicence),
+    )
+  : licences;
 
-for (const licence of licences) {
+if (onlyLicence && licencesToGenerate.length === 0) {
+  throw new Error(`Licence active introuvable : ${onlyLicence}`);
+}
+
+for (const licence of licencesToGenerate) {
   const slug = slugLicence(licence);
   const dir = path.join(root, "licence", slug);
   await fs.mkdir(dir, { recursive: true });
@@ -387,13 +398,15 @@ for (const licence of licences) {
   );
 }
 
-const catalogueDir = path.join(root, "catalogue");
-await fs.mkdir(catalogueDir, { recursive: true });
-await fs.writeFile(
-  path.join(catalogueDir, "index.html"),
-  buildCatalogueHtml(baseHtml),
-  "utf8",
-);
+if (!onlyLicence) {
+  const catalogueDir = path.join(root, "catalogue");
+  await fs.mkdir(catalogueDir, { recursive: true });
+  await fs.writeFile(
+    path.join(catalogueDir, "index.html"),
+    buildCatalogueHtml(baseHtml),
+    "utf8",
+  );
+}
 
 const sitemap = [
   '<?xml version="1.0" encoding="UTF-8"?>',
@@ -412,5 +425,5 @@ const sitemap = [
 
 await fs.writeFile(path.join(root, "sitemap.xml"), sitemap, "utf8");
 
-console.log(`Pages licences générées : ${licences.length}`);
-console.log("Page catalogue générée : 1");
+console.log(`Pages licences générées : ${licencesToGenerate.length}`);
+console.log(`Page catalogue générée : ${onlyLicence ? 0 : 1}`);

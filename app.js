@@ -193,6 +193,9 @@ async function adminHideProduct(button){
     const productName =
         button.dataset.productName || "";
 
+    const productRuntimeId =
+        button.dataset.productRuntimeId || "";
+
     if(
         !confirm(
             `Masquer cet article dans Kadotaku ?\n\n${productName}`
@@ -236,12 +239,16 @@ async function adminHideProduct(button){
 
         allProducts =
             allProducts.filter(
-                p => p.url !== productUrl
+                p =>
+                    p._runtimeId !==
+                    productRuntimeId
             );
 
         allResults =
             allResults.filter(
-                p => p.url !== productUrl
+                p =>
+                    p._runtimeId !==
+                    productRuntimeId
             );
 
         setTimeout(()=>{
@@ -437,7 +444,10 @@ function splitMultiValues(value){
         .filter(Boolean);
 }
 
-function prepareProduct(product){
+function prepareProduct(product,index){
+
+    product._runtimeId =
+        String(index);
 
     product._randomSort =
         Math.random();
@@ -581,13 +591,13 @@ function findLicenceFromSearch(query){
     return row ? row[0] : "";
 }
 
-function findPersoFromSearch(query){
+function findPersosFromSearch(query){
 
     const queryKey =
         normalizeLicenceKey(query);
 
     if(queryKey.length < 3){
-        return "";
+        return [];
     }
 
     const persos =
@@ -600,18 +610,18 @@ function findPersoFromSearch(query){
                 )
         )];
 
-    return persos
-        .sort((a,b)=> a.length - b.length)
-        .find(perso=>{
+    const exactMatches =
+        persos.filter(perso =>
+            normalizeLicenceKey(perso) === queryKey
+        );
 
-            const persoKey =
-                normalizeLicenceKey(perso);
+    if(exactMatches.length){
+        return exactMatches;
+    }
 
-            return (
-                persoKey === queryKey ||
-                persoKey.includes(queryKey)
-            );
-        }) || "";
+    return persos.filter(perso =>
+        normalizeLicenceKey(perso).includes(queryKey)
+    );
 }
 
 function isHomeRoute(){
@@ -657,7 +667,12 @@ async function loadData(){
     console.time("LICENCES_FETCH");
 
     const productsPromise =
-        fetch(API_URL + "/api/all");
+        fetch(
+            API_URL + "/api/all?fresh=" + Date.now(),
+            {
+                cache:"no-store"
+            }
+        );
 
     const animeRes =
         await fetch(animeSheetURL);
@@ -696,9 +711,15 @@ async function loadData(){
     console.time("JSON");
 
     allProducts =
-        (await productsRes.json()).map(
-            prepareProduct
-        );
+        (await productsRes.json())
+            .filter(product =>
+                String(
+                    product.actif ?? ""
+                ).trim() === "1"
+            )
+            .map(
+                prepareProduct
+            );
 
     productsLoaded = true;
 
@@ -2058,6 +2079,35 @@ function updateActiveFilters(){
             '.perso-checkbox:checked'
         )];
 
+    if(routeLicenceFilter){
+
+        addFilterTag(
+            'licence:' + routeLicenceFilter,
+            `
+                <div class="filter-tag">
+
+                    ${escapeHtml(routeLicenceFilter)}
+
+                    <span
+                        class="filter-remove"
+                        data-value="${encodeURIComponent(routeLicenceFilter)}"
+                        onclick="
+                            removeFilter(
+                                'licence',
+                                decodeURIComponent(
+                                    this.dataset.value
+                                )
+                            )
+                        "
+                    >
+                        âœ•
+                    </span>
+
+                </div>
+            `
+        );
+    }
+
     selectedTypes.forEach(i=>{
 
         addFilterTag(
@@ -2255,6 +2305,7 @@ if(favoritesMode){
         selectedTypes.length ||
         selectedLicences.length ||
         selectedPersos.length ||
+        routeLicenceFilter ||
         quickTopType ||
         waifuMode ||
         favoritesMode ||
@@ -2386,16 +2437,18 @@ function startSearch(){
     const searchedLicence =
         findLicenceFromSearch(searchText);
 
-    const searchedPerso =
+    const searchedPersos =
         searchedLicence
-            ? ""
-            : findPersoFromSearch(searchText);
+            ? []
+            : findPersosFromSearch(searchText);
 
     const searchedLicenceKey =
         normalizeLicenceKey(searchedLicence);
 
-    const searchedPersoKey =
-        normalizeLicenceKey(searchedPerso);
+    const searchedPersoKeys =
+        searchedPersos.map(
+            normalizeLicenceKey
+        );
 
     syncDefaultSortForContext();
 
@@ -2436,8 +2489,11 @@ function startSearch(){
         }
 
         if(
-            searchedPerso &&
-            !p._persoKeys.has(searchedPersoKey)
+            searchedPersos.length &&
+            !searchedPersoKeys.some(
+                persoKey =>
+                    p._persoKeys.has(persoKey)
+            )
         ){
             return false;
         }
@@ -2528,7 +2584,7 @@ function startSearch(){
         if(
             searchText &&
             !searchedLicence &&
-            !searchedPerso
+            !searchedPersos.length
         ){
 
             if(!p._searchText.includes(searchText)){
@@ -2758,6 +2814,7 @@ function displayProducts(){
                         data-product-name="${escapeAttr(p.name)}"
                         data-product-image="${escapeAttr(p.image)}"
                         data-licence="${escapeAttr(p.licence)}"
+                        data-product-runtime-id="${escapeAttr(p._runtimeId)}"
                         onclick="
                             event.stopPropagation();
                             adminHideProduct(this)
