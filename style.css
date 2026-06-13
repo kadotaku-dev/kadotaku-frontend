@@ -1277,6 +1277,22 @@ body{
     gap:20px;
 }
 
+.amazon-disclosure{
+    display:none;
+    width:100%;
+    margin:28px 0 4px;
+    padding:12px 8px 0;
+    border-top:1px solid rgba(148,163,184,0.16);
+    color:#94a3b8;
+    font-size:11px;
+    line-height:1.45;
+    text-align:center;
+}
+
+.amazon-disclosure.is-ready{
+    display:block;
+}
+
 .loading-message{
 
     grid-column:1/-1;
@@ -1922,6 +1938,12 @@ body{
 
 
 @media (max-width:768px){
+
+    .amazon-disclosure{
+        margin-top:22px;
+        padding:10px 12px 4px;
+        font-size:10px;
+    }
 
     .licence-card-expand{
     display:none !important;

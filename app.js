@@ -696,6 +696,23 @@ function showProductsLoadingMessage(){
     `;
 }
 
+function showAmazonDisclosure(){
+
+    if(!productsLoaded){
+        return;
+    }
+
+    document
+        .querySelectorAll(
+            ".amazon-disclosure"
+        )
+        .forEach(disclosure =>
+            disclosure.classList.add(
+                "is-ready"
+            )
+        );
+}
+
 /* LOAD */
 
 async function loadData(){
@@ -797,6 +814,8 @@ setTimeout(()=>{
     buildTopMenus();
 
     handleLicenceRoute();
+
+    showAmazonDisclosure();
     
     updateFavoritesButton();
 
@@ -2935,6 +2954,7 @@ function displayProducts(){
     });
 
     grid.innerHTML = html;
+    showAmazonDisclosure();
 }
 
 /* MODAL */

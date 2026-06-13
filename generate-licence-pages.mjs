@@ -142,7 +142,11 @@ function buildSeoData(products) {
       continue;
     }
 
-    const licence = product.licence.trim();
+    const productLicence = product.licence.trim();
+    const licence =
+      [...byLicence.keys()].find(
+        (key) => normaliseKey(key) === normaliseKey(productLicence),
+      ) || productLicence;
 
     if (!byLicence.has(licence)) {
       byLicence.set(licence, {
@@ -229,6 +233,14 @@ function productTypeLabel(type) {
   if (lower.includes("jeux")) return "jeux";
   if (lower.includes("puzzle")) return "puzzles";
   if (lower.includes("lampe")) return "lampes";
+  if (lower.includes("tirelire")) return "tirelires";
+  if (lower.includes("maquette")) return "maquettes";
+  if (lower.includes("tapis de souris")) return "tapis de souris";
+  if (lower.includes("goodies")) return "goodies";
+  if (lower.includes("porte-cl")) return "porte-clés";
+  if (lower.includes("sticker") || lower.includes("décalcomanie")) return "stickers";
+  if (lower.includes("bijou") || lower.includes("collier")) return "bijoux";
+  if (lower.includes("blu-ray") || lower.includes("dvd") || lower.includes("cd")) return "Blu-ray, DVD et CD";
 
   return type;
 }
@@ -251,19 +263,25 @@ function uniqueLabels(labels) {
 function pageDescription(licence, seoDataByLicence) {
   const seoData = findSeoData(licence, seoDataByLicence);
   const types = seoData
-    ? uniqueLabels(topEntries(seoData.types, 6).map(productTypeLabel)).slice(0, 4)
+    ? uniqueLabels(topEntries(seoData.types, 6).map(productTypeLabel)).slice(0, 3)
     : [];
   const persos = seoData ? topEntries(seoData.persos, 5) : [];
-  const productWords =
+  const productLabels =
     types.length > 0
-      ? joinProductList(types)
-      : "figurines, goodies, mugs, peluches et posters";
+      ? [...types]
+      : ["figurines", "mugs", "peluches", "posters"];
 
-  if (persos.length > 0) {
-    return `Découvrez les meilleures idées cadeaux ${licence} autour de ${joinFrenchList(persos)} : ${productWords}, goodies et produits dérivés pour fans d'anime et de manga.`;
+  if (!productLabels.some((type) => normaliseKey(type) === "goodies")) {
+    productLabels.push("goodies");
   }
 
-  return `Découvrez les meilleures idées cadeaux ${licence} : ${productWords}, goodies et produits dérivés pour fans d'anime et de manga.`;
+  const productWords = joinProductList(productLabels);
+
+  if (persos.length > 0) {
+    return `Découvrez les meilleures idées cadeaux ${licence} autour de ${joinFrenchList(persos)} : ${productWords} et produits dérivés pour fans d'anime et de manga.`;
+  }
+
+  return `Découvrez les meilleures idées cadeaux ${licence} : ${productWords} et produits dérivés pour fans d'anime et de manga.`;
 }
 
 function pageTitle(licence) {
@@ -406,6 +424,34 @@ if (!onlyLicence) {
     buildCatalogueHtml(baseHtml),
     "utf8",
   );
+
+  const licenceRoot = path.join(root, "licence");
+  const expectedSlugs = new Set(licences.map(slugLicence));
+  const existingEntries = await fs.readdir(licenceRoot, {
+    withFileTypes: true,
+  });
+
+  for (const entry of existingEntries) {
+    if (!entry.isDirectory() || expectedSlugs.has(entry.name)) {
+      continue;
+    }
+
+    const obsoleteDir = path.resolve(licenceRoot, entry.name);
+    const relativePath = path.relative(path.resolve(licenceRoot), obsoleteDir);
+
+    if (
+      !relativePath ||
+      relativePath.startsWith("..") ||
+      path.isAbsolute(relativePath)
+    ) {
+      throw new Error(`Suppression de route refusée : ${obsoleteDir}`);
+    }
+
+    await fs.rm(obsoleteDir, {
+      recursive: true,
+      force: true,
+    });
+  }
 }
 
 const sitemap = [
@@ -413,6 +459,9 @@ const sitemap = [
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
   "  <url>",
   `    <loc>${SITE_URL}/</loc>`,
+  "  </url>",
+  "  <url>",
+  `    <loc>${SITE_URL}/catalogue</loc>`,
   "  </url>",
   ...licences.flatMap((licence) => [
     "  <url>",
