@@ -1,0 +1,464 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta property="og:site_name" content="Kadotaku">
+<meta property="og:title" content="Cadeaux Cat's Eye | Figurines, goodies et idées cadeaux - Kadotaku">
+<meta property="og:description" content="Découvrez les meilleures idées cadeaux Cat's Eye autour de Hitomi Kisugi et Rui Kisugi : vêtements, figurines, mangas, goodies et produits dérivés pour fans d'anime et de manga.">
+<meta property="og:url" content="https://www.kadotaku.fr/licence/cat's-eye">
+
+<title>
+Cadeaux Cat's Eye | Figurines, goodies et idées cadeaux - Kadotaku
+</title>
+
+<meta
+    id="metaDescription"
+    name="description"
+content="Découvrez les meilleures idées cadeaux Cat's Eye autour de Hitomi Kisugi et Rui Kisugi : vêtements, figurines, mangas, goodies et produits dérivés pour fans d'anime et de manga.">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<link
+    href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap"
+    rel="stylesheet"
+>
+
+<link rel="canonical" href="https://www.kadotaku.fr/licence/cat's-eye">
+
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Cadeaux Cat's Eye",
+  "url": "https://www.kadotaku.fr/licence/cat's-eye",
+  "description": "Découvrez les meilleures idées cadeaux Cat's Eye autour de Hitomi Kisugi et Rui Kisugi : vêtements, figurines, mangas, goodies et produits dérivés pour fans d'anime et de manga.",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "Kadotaku",
+    "url": "https://www.kadotaku.fr/"
+  }
+}
+</script>
+
+<link rel="stylesheet" href="/style.css">
+
+</head>
+
+<body>
+
+<header class="hero">
+
+    <div class="hero-background"></div>
+
+    <img
+        src="/bandeau_calque.webp"
+        class="hero-overlay"
+        loading="eager"
+        decoding="async"
+    >
+
+</header>
+
+<div class="hero-spacer"></div>
+
+<div class="main-header">
+
+    <div class="main-header-left">
+
+        <a
+    href="/"
+    class="top-icon-button"
+    title="Accueil"
+>
+
+    <img
+        src="/icons/house.svg"
+        class="topbar-svg-icon"
+        alt="Accueil"
+    >
+
+</a>
+
+<a
+    href="/?page=catalogue"
+    class="top-icon-button"
+    title="Catalogue"
+>
+
+    <img
+        src="/icons/book-text.svg"
+        class="topbar-svg-icon"
+        alt="Catalogue"
+    >
+
+</a>
+
+        <div
+            class="menu-item"
+        >
+
+            Types d'article ▼
+
+            <div
+                class="dropdown"
+                id="typesDropdown"
+            ></div>
+
+        </div>
+
+        <div
+        class="menu-item"
+    >
+
+        Licences ▼
+
+            <div
+                class="dropdown"
+                id="licencesDropdown"
+            ></div>
+
+        </div>
+
+        <button
+            id="waifuButton"
+            title="Affiche uniquement les personnages féminins"
+            class="waifu-button"
+            onclick="toggleWaifuMode()"
+        >
+            Mode Waifu
+        </button>
+        
+        <button
+            class="favorites-toggle"
+            onclick="toggleFavoritesMode()"
+        >
+            ❤ Favoris
+        </button>
+
+    </div>
+
+    <div class="main-title-wrapper">
+
+    <a
+        href="/"
+        class="top-icon-button mobile-only-icon"
+        title="Accueil"
+    >
+
+        <img
+            src="/icons/house.svg"
+            class="topbar-svg-icon"
+            alt="Accueil"
+        >
+
+    </a>
+
+    <div class="main-title">
+    La référence pour tous les fans d'animes et de mangas
+    </div>
+
+    <a
+    href="/?page=catalogue"
+    class="top-icon-button mobile-only-icon"
+    title="Catalogue"
+>
+
+    <img
+        src="/icons/book-text.svg"
+        class="topbar-svg-icon"
+        alt="Catalogue"
+    >
+
+</a>
+
+    <div class="filters-wrapper">
+
+        <div
+            class="active-filters"
+            id="activeFilters"
+        ></div>
+
+        <div
+            class="clear-all-filters"
+            id="clearAllFilters"
+            title="Supprimer les filtres en cours"
+            onclick="clearAllFilters()"
+        >
+            ×
+        </div>
+
+    </div>
+
+</div>
+
+    <div class="main-header-right">
+
+        <div class="search-container">
+
+            <input
+                type="text"
+                id="searchInput"
+                class="search-input"
+                placeholder="Naruto, figurine, Luffy..."
+                oninput="handleSearchInput()"
+            >
+
+        </div>
+
+        <select
+            id="sortSelect"
+            class="sort-select"
+            onchange="startSearch()"
+        >
+
+            <option value="random">
+                Aléatoire
+            </option>
+
+            <option value="price-asc">
+                Prix croissant
+            </option>
+
+            <option value="price-desc">
+                Prix décroissant
+            </option>
+
+            <option value="licence-asc">
+                Licence A → Z
+            </option>
+
+            <option value="licence-desc">
+                Licence Z → A
+            </option>
+
+            <option value="type-asc">
+                Type A → Z
+            </option>
+
+            <option value="type-desc">
+                Type Z → A
+            </option>
+
+            <option value="perso-asc">
+                Personnage A → Z
+            </option>
+
+            <option value="perso-desc">
+                Personnage Z → A
+            </option>
+
+        </select>
+
+    </div>
+
+</div>
+
+<div class="container">
+
+    <div class="sidebar">
+
+        <div
+            id="sidebarPromoCard"
+            class="sidebar-promo-card"
+        ></div>
+
+        <div class="sidebar-box">
+
+            <div class="quick-budget">
+
+                <div class="quick-budget-title">
+                    Moins de
+                </div>
+
+                <div class="quick-budget-options">
+
+                    <label>
+                        <input type="checkbox" id="under20">
+                        20€
+                    </label>
+
+                    <label>
+                        <input type="checkbox" id="under50">
+                        50€
+                    </label>
+
+                    <label>
+                        <input type="checkbox" id="under100">
+                        100€
+                    </label>
+
+                    <label>
+                        <input type="checkbox" id="under200">
+                        200€
+                    </label>
+
+                </div>
+
+            </div>
+
+            <div class="range-container">
+
+                <div class="range-values">
+
+                    <span id="minPriceValue">
+                        1€
+                    </span>
+
+                    <span id="maxPriceValue">
+                        1000€
+                    </span>
+
+                </div>
+
+                <div
+                    class="slider-track"
+                    id="sliderTrack"
+                ></div>
+
+                <input
+                    type="range"
+                    id="minPrice"
+                    min="1"
+                    max="1000"
+                    value="1"
+                >
+
+                <input
+                    type="range"
+                    id="maxPrice"
+                    min="1"
+                    max="1000"
+                    value="1000"
+                >
+
+            </div>
+
+        </div>
+
+        <div class="sidebar-box">
+
+            <div
+                class="sidebar-title"
+                onclick="toggleSidebarSection('typeList','typeSidebarToggle')"
+                style="cursor:pointer;display:flex;align-items:center;gap:10px;"
+            >
+                <span id="typeSidebarToggle">+</span>
+
+                Types d'article
+            </div>
+
+            <div id="typeList" style="display:none;"></div>
+
+        </div>
+
+        <div class="sidebar-box">
+
+            <div
+                class="sidebar-title"
+                onclick="toggleSidebarSection('licenceList','licenceSidebarToggle')"
+                style="cursor:pointer;display:flex;align-items:center;gap:10px;"
+            >
+                <span id="licenceSidebarToggle">+</span>
+
+                Licences
+            </div>
+
+            <div id="licenceList" style="display:none;"></div>
+
+        </div>
+        
+      <div
+          class="back-to-top"
+          onclick="
+              document
+                  .querySelector('.sidebar')
+                  .scrollTo({
+                      top:0,
+                      behavior:'smooth'
+                  });
+          "
+      >
+          ↑ Haut des filtres
+      </div>
+
+    </div>
+
+    <div
+        class="results-scroll-top"
+        onclick="
+            document
+                .querySelector('.products')
+                .scrollTo({
+                    top:0,
+                    behavior:'smooth'
+                });
+        "
+    >
+        ↑
+    </div>
+
+
+    <button
+    id="licenceCardsSizeToggle"
+    class="licence-cards-size-toggle"
+    onclick="toggleLicenceCardsSize()"
+    title="Changer la taille des cards"
+>
+    ▦
+</button>
+
+<div class="products">
+        <div
+            class="featured-licence-cards-grid"
+            id="featuredLicenceCardsGrid"
+        ></div>
+
+        <div
+            class="licence-cards-grid"
+            id="licenceCardsGrid"
+        ></div>
+
+        <div
+            class="grid"
+            id="productGrid"
+        >
+
+    <div class="loading-message">
+        <h1>Cadeaux Cat's Eye</h1>
+        <p>Découvrez les meilleures idées cadeaux Cat's Eye autour de Hitomi Kisugi et Rui Kisugi : vêtements, figurines, mangas, goodies et produits dérivés pour fans d'anime et de manga.</p>
+        Chargement des produits...
+    </div>
+
+</div>
+
+        <footer class="amazon-disclosure">
+            En tant que Partenaire Amazon, je réalise un bénéfice sur les achats remplissant les conditions requises.
+        </footer>
+
+    </div>
+
+</div>
+
+<div
+    class="modal"
+    id="imageModal"
+    onclick="closeModal()"
+>
+
+    <img id="modalImg">
+
+</div>
+
+<script src="/app.js"></script>
+
+</body>
+</html>
