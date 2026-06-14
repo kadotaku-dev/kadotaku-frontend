@@ -30,6 +30,7 @@ let productsLoaded = false;
 let userSelectedSort = false;
 let showAllLicencesSecretMode = false;
 let licenceCardsRenderGeneration = 0;
+let productCardsRenderGeneration = 0;
 let secretClickCount = 0;
 let secretClickTimer = null;
 const DEFAULT_MAX_PRICE = 1000;
@@ -754,6 +755,129 @@ function showAmazonDisclosure(){
         );
 }
 
+function prepareInitialProductRoute(){
+
+    const path =
+        window.location.pathname;
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const localLicence =
+        params.get("licence");
+
+    if(localLicence){
+        routeLicenceFilter = localLicence;
+        return;
+    }
+
+    if(path.startsWith("/licence/")){
+
+        const slug =
+            decodeURIComponent(path)
+                .split("/licence/")[1]
+                ?.toLowerCase();
+
+        routeLicenceFilter =
+            allAnime.find(licence =>
+                slugLicence(licence) === slug
+            ) || "";
+
+        return;
+    }
+
+    routeLicenceFilter = "";
+}
+
+function renderInitialProductsBeforeMenus(){
+
+    if(isHomeRoute()){
+        return;
+    }
+
+    prepareInitialProductRoute();
+    startSearch();
+}
+
+function buildMenusAfterFirstProductPaint(){
+
+    const grid =
+        document.getElementById(
+            "productGrid"
+        );
+
+    const firstImages =
+        [...(
+            grid?.querySelectorAll(
+                'img[fetchpriority="high"]'
+            ) || []
+        )];
+
+    const waitForImage = image =>{
+
+        if(image.complete){
+            return Promise.resolve();
+        }
+
+        return new Promise(resolve =>{
+
+            image.addEventListener(
+                "load",
+                resolve,
+                {once:true}
+            );
+
+            image.addEventListener(
+                "error",
+                resolve,
+                {once:true}
+            );
+        });
+    };
+
+    const firstImagesReady =
+        firstImages.length
+            ? Promise.all(
+                firstImages.map(
+                    waitForImage
+                )
+            )
+            : Promise.resolve();
+
+    Promise.race([
+        firstImagesReady,
+        new Promise(resolve =>
+            setTimeout(resolve,3500)
+        )
+    ]).then(()=>{
+
+        requestAnimationFrame(()=>{
+
+            setTimeout(()=>{
+
+                console.time("MENUS");
+
+                buildSidebar();
+
+                buildTopMenus();
+
+                handleLicenceRoute();
+
+                showAmazonDisclosure();
+                
+                updateFavoritesButton();
+
+                console.timeEnd("MENUS");
+
+                console.timeEnd("TOTAL");
+
+            },150);
+        });
+    });
+}
+
 /* LOAD */
 
 async function loadData(){
@@ -842,25 +966,9 @@ async function loadData(){
 
     refreshAllTypes();
 
-setTimeout(()=>{
+    renderInitialProductsBeforeMenus();
 
-    console.time("MENUS");
-
-    buildSidebar();
-
-    buildTopMenus();
-
-    handleLicenceRoute();
-
-    showAmazonDisclosure();
-    
-    updateFavoritesButton();
-
-    console.timeEnd("MENUS");
-
-    console.timeEnd("TOTAL");
-
-},0);
+    buildMenusAfterFirstProductPaint();
 }
 
 /* SIDEBAR */
@@ -2937,6 +3045,92 @@ function updateSidebarTypeVisibility(){
         });
 }
 
+function buildProductCardHTML(
+    product,
+    prioritizeImage = false
+){
+
+    const adminButton =
+        isAdminMode()
+
+        ? `
+                <button
+                    class="admin-hide-product-btn"
+                    data-product-url="${escapeAttr(product.url)}"
+                    data-product-name="${escapeAttr(product.name)}"
+                    data-product-image="${escapeAttr(product.image)}"
+                    data-licence="${escapeAttr(product.licence)}"
+                    data-product-runtime-id="${escapeAttr(product._runtimeId)}"
+                    onclick="
+                        event.stopPropagation();
+                        adminHideProduct(this)
+                    "
+                    title="Masquer cet article"
+                    aria-label="Masquer cet article"
+                >
+                    x
+                </button>
+            `
+
+        : "";
+
+    return `
+
+        <div
+            class="card"
+            data-product-runtime-id="${escapeAttr(product._runtimeId)}"
+        >
+
+            <div class="card-image-wrapper">
+
+                ${adminButton}
+
+                <button
+                    class="favorite-btn ${isFavorite(product.url) ? 'active' : ''}"
+
+                    onclick="
+                        event.stopPropagation();
+                        toggleFavorite('${product.url}')
+                    "
+                >
+                    ❤
+                </button>
+
+                <img
+                    loading="${prioritizeImage ? "eager" : "lazy"}"
+                    fetchpriority="${prioritizeImage ? "high" : "auto"}"
+                    src="${escapeAttr(product.image)}"
+                    onclick="
+                        openModal(
+                            '${escapeAttr(product.image)}',
+                            true,
+                            '${escapeAttr(product._runtimeId)}'
+                        )
+                    "
+                >
+
+            </div>
+
+            <p title="${escapeAttr(product.name)}">
+                  ${escapeHtml(product.name)}
+            </p>
+
+            <div class="price">
+                ${escapeHtml(product.price)}
+            </div>
+
+            <a
+                href="${escapeAttr(product.url)}"
+                target="_blank"
+                class="amazon-btn"
+            >
+                Voir sur Amazon
+            </a>
+
+        </div>
+    `;
+}
+
 function displayProducts(){
 
     const grid =
@@ -2944,101 +3138,241 @@ function displayProducts(){
             "productGrid"
         );
 
-    let html = "";
+    if(!grid){
+        return;
+    }
 
-    allResults.forEach(p=>{
+    const renderGeneration =
+        ++productCardsRenderGeneration;
 
-        const adminButton =
-            isAdminMode()
+    const productsToRender =
+        [...allResults];
 
-            ? `
-                    <button
-                        class="admin-hide-product-btn"
-                        data-product-url="${escapeAttr(p.url)}"
-                        data-product-name="${escapeAttr(p.name)}"
-                        data-product-image="${escapeAttr(p.image)}"
-                        data-licence="${escapeAttr(p.licence)}"
-                        data-product-runtime-id="${escapeAttr(p._runtimeId)}"
-                        onclick="
-                            event.stopPropagation();
-                            adminHideProduct(this)
-                        "
-                        title="Masquer cet article"
-                        aria-label="Masquer cet article"
-                    >
-                        x
-                    </button>
-                `
+    const availableWidth =
+        grid.clientWidth ||
+        window.innerWidth;
 
-            : "";
+    const estimatedColumns =
+        Math.max(
+            2,
+            Math.floor(
+                availableWidth / 195
+            )
+        );
 
-        html += `
+    const initialBatchSize =
+        Math.min(
+            productsToRender.length,
+            Math.max(
+                estimatedColumns,
+                Math.min(
+                    16,
+                    estimatedColumns * 2
+                )
+            )
+        );
 
-            <div class="card">
+    const priorityImageCount =
+        Math.min(
+            productsToRender.length,
+            estimatedColumns
+        );
 
-                <div class="card-image-wrapper">
+    const chunkSize = 48;
 
-                    ${adminButton}
+    const buildBatch = (
+        start,
+        end,
+        prioritizeFirstImages = false
+    ) =>
+        productsToRender
+            .slice(start,end)
+            .map((product,index) =>
+                buildProductCardHTML(
+                    product,
+                    prioritizeFirstImages &&
+                    start + index <
+                        priorityImageCount
+                )
+            )
+            .join("");
 
-                    <button
-                        class="favorite-btn ${isFavorite(p.url) ? 'active' : ''}"
+    grid.innerHTML =
+        buildBatch(
+            0,
+            initialBatchSize,
+            true
+        );
 
-                        onclick="
-                            event.stopPropagation();
-                            toggleFavorite('${p.url}')
-                        "
-                    >
-                        ❤
-                    </button>
-
-                    <img
-                        loading="lazy"
-                        src="${escapeAttr(p.image)}"
-                        onclick="
-                            openModal('${escapeAttr(p.image)}',true)
-                        "
-                    >
-
-                </div>
-
-                <p title="${escapeAttr(p.name)}">
-                      ${escapeHtml(p.name)}
-                </p>
-
-                <div class="price">
-                    ${escapeHtml(p.price)}
-                </div>
-
-                <a
-                    href="${escapeAttr(p.url)}"
-                    target="_blank"
-                    class="amazon-btn"
-                >
-                    Voir sur Amazon
-                </a>
-
-            </div>
-        `;
-    });
-
-    grid.innerHTML = html;
     showAmazonDisclosure();
+
+    let nextIndex =
+        initialBatchSize;
+
+    const appendNextBatch = ()=>{
+
+        if(
+            renderGeneration !==
+                productCardsRenderGeneration ||
+            nextIndex >=
+                productsToRender.length
+        ){
+            return;
+        }
+
+        const visibleProductIds =
+            new Set(
+                allResults.map(
+                    product =>
+                        product._runtimeId
+                )
+            );
+
+        const batchProducts =
+            productsToRender
+                .slice(
+                    nextIndex,
+                    nextIndex + chunkSize
+                )
+                .filter(product =>
+                    visibleProductIds.has(
+                        product._runtimeId
+                    )
+                );
+
+        if(batchProducts.length){
+            grid.insertAdjacentHTML(
+                "beforeend",
+                batchProducts
+                    .map(product =>
+                        buildProductCardHTML(
+                            product
+                        )
+                    )
+                    .join("")
+            );
+        }
+
+        nextIndex +=
+            chunkSize;
+
+        scheduleNextBatch();
+    };
+
+    const scheduleNextBatch = ()=>{
+
+        if(
+            renderGeneration !==
+                productCardsRenderGeneration ||
+            nextIndex >=
+                productsToRender.length
+        ){
+            return;
+        }
+
+        if("requestIdleCallback" in window){
+            window.requestIdleCallback(
+                appendNextBatch,
+                {timeout:180}
+            );
+            return;
+        }
+
+        setTimeout(
+            appendNextBatch,
+            35
+        );
+    };
+
+    scheduleNextBatch();
 }
 
 /* MODAL */
 
 let modalZoomAllowed = false;
 let modalZoomActive = false;
+let modalProductItems = [];
+let modalProductIndex = -1;
+let modalTouchStartX = 0;
+let modalTouchStartY = 0;
+let modalSwipeHandledAt = 0;
 
-function openModal(src,allowZoom = false){
+function ensureModalNavigationControls(){
+
+    const modal =
+        document.getElementById("imageModal");
+
+    if(
+        !modal ||
+        modal.querySelector(".modal-nav")
+    ){
+        return;
+    }
+
+    const previousButton =
+        document.createElement("button");
+
+    previousButton.type = "button";
+    previousButton.className =
+        "modal-nav modal-nav-previous";
+    previousButton.textContent = "‹";
+    previousButton.title = "Article précédent";
+    previousButton.setAttribute(
+        "aria-label",
+        "Article précédent"
+    );
+    previousButton.onclick = event =>{
+        event.preventDefault();
+        event.stopPropagation();
+        navigateModalProduct(-1);
+    };
+
+    const nextButton =
+        document.createElement("button");
+
+    nextButton.type = "button";
+    nextButton.className =
+        "modal-nav modal-nav-next";
+    nextButton.textContent = "›";
+    nextButton.title = "Article suivant";
+    nextButton.setAttribute(
+        "aria-label",
+        "Article suivant"
+    );
+    nextButton.onclick = event =>{
+        event.preventDefault();
+        event.stopPropagation();
+        navigateModalProduct(1);
+    };
+
+    modal.append(
+        previousButton,
+        nextButton
+    );
+}
+
+function updateModalNavigationVisibility(){
+
+    const modal =
+        document.getElementById("imageModal");
+
+    if(!modal){
+        return;
+    }
+
+    modal.classList.toggle(
+        "product-navigation-enabled",
+        modalProductItems.length > 1 &&
+        modalProductIndex >= 0
+    );
+}
+
+function loadModalImage(src){
 
     const modalImg =
         document.getElementById("modalImg");
 
     if(modalImg){
-        modalZoomAllowed =
-            Boolean(allowZoom);
-
         resetModalZoom();
 
         modalImg.classList.add("loading");
@@ -3056,10 +3390,104 @@ function openModal(src,allowZoom = false){
 
         modalImg.src = src;
     }
+}
+
+function openModal(
+    src,
+    allowZoom = false,
+    productRuntimeId = ""
+){
+
+    ensureModalNavigationControls();
+
+    modalZoomAllowed =
+        Boolean(allowZoom);
+
+    if(productRuntimeId !== ""){
+
+        modalProductItems =
+            [...allResults];
+
+        modalProductIndex =
+            modalProductItems.findIndex(
+                product =>
+                    String(product._runtimeId) ===
+                    String(productRuntimeId)
+            );
+    } else {
+
+        modalProductItems = [];
+        modalProductIndex = -1;
+    }
+
+    updateModalNavigationVisibility();
+    loadModalImage(src);
 
     document
         .getElementById("imageModal")
         .style.display = "flex";
+}
+
+function navigateModalProduct(direction){
+
+    if(
+        modalProductItems.length <= 1 ||
+        modalProductIndex < 0
+    ){
+        return;
+    }
+
+    modalProductIndex =
+        (
+            modalProductIndex +
+            direction +
+            modalProductItems.length
+        ) % modalProductItems.length;
+
+    const product =
+        modalProductItems[modalProductIndex];
+
+    if(product?.image){
+        loadModalImage(product.image);
+        scrollToModalProductCard(product);
+    }
+}
+
+function scrollToModalProductCard(
+    product,
+    remainingAttempts = 12
+){
+
+    if(!product?._runtimeId){
+        return;
+    }
+
+    const card =
+        document.querySelector(
+            `.card[data-product-runtime-id="${product._runtimeId}"]`
+        );
+
+    if(card){
+        card.scrollIntoView({
+            behavior:"smooth",
+            block:"center",
+            inline:"nearest"
+        });
+        return;
+    }
+
+    if(remainingAttempts <= 0){
+        return;
+    }
+
+    setTimeout(
+        () =>
+            scrollToModalProductCard(
+                product,
+                remainingAttempts - 1
+            ),
+        80
+    );
 }
 
 function closeModal(){
@@ -3077,6 +3505,10 @@ function closeModal(){
     document
         .getElementById("imageModal")
         .style.display = "none";
+
+    modalProductItems = [];
+    modalProductIndex = -1;
+    updateModalNavigationVisibility();
 }
 
 function isModalZoomEnabled(){
@@ -3131,6 +3563,15 @@ function updateModalZoom(event){
 function toggleModalZoom(event){
 
     if(
+        Date.now() -
+        modalSwipeHandledAt < 500
+    ){
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+    }
+
+    if(
         !modalZoomAllowed ||
         !isModalZoomEnabled()
     ){
@@ -3169,7 +3610,105 @@ if(modalImg){
         "mouseleave",
         resetModalZoom
     );
+
+    modalImg.addEventListener(
+        "touchstart",
+        event =>{
+
+            if(
+                modalProductItems.length <= 1 ||
+                event.touches.length !== 1
+            ){
+                return;
+            }
+
+            modalTouchStartX =
+                event.touches[0].clientX;
+
+            modalTouchStartY =
+                event.touches[0].clientY;
+        },
+        {passive:true}
+    );
+
+    modalImg.addEventListener(
+        "touchend",
+        event =>{
+
+            if(
+                modalProductItems.length <= 1 ||
+                event.changedTouches.length !== 1
+            ){
+                return;
+            }
+
+            const deltaX =
+                event.changedTouches[0].clientX -
+                modalTouchStartX;
+
+            const deltaY =
+                event.changedTouches[0].clientY -
+                modalTouchStartY;
+
+            if(
+                Math.abs(deltaX) < 55 ||
+                Math.abs(deltaX) <=
+                    Math.abs(deltaY)
+            ){
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            modalSwipeHandledAt =
+                Date.now();
+
+            navigateModalProduct(
+                deltaX < 0 ? 1 : -1
+            );
+        }
+    );
 }
+
+document.addEventListener(
+    "keydown",
+    event =>{
+
+        const modal =
+            document.getElementById(
+                "imageModal"
+            );
+
+        if(
+            !modal ||
+            modal.style.display !== "flex"
+        ){
+            return;
+        }
+
+        if(event.key === "Escape"){
+            closeModal();
+            return;
+        }
+
+        if(
+            modalProductItems.length <= 1
+        ){
+            return;
+        }
+
+        if(event.key === "ArrowLeft"){
+            event.preventDefault();
+            navigateModalProduct(-1);
+        }
+
+        if(event.key === "ArrowRight"){
+            event.preventDefault();
+            navigateModalProduct(1);
+        }
+    }
+);
 
 /* BUDGET */
 
