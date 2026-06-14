@@ -29,6 +29,7 @@ let allResults = [];
 let productsLoaded = false;
 let userSelectedSort = false;
 let showAllLicencesSecretMode = false;
+let licenceCardsRenderGeneration = 0;
 let secretClickCount = 0;
 let secretClickTimer = null;
 const DEFAULT_MAX_PRICE = 1000;
@@ -591,6 +592,43 @@ function getProductsForLicence(licence){
     );
 }
 
+function getLicenceRow(licence){
+
+    const licenceKey =
+        normalizeLicenceKey(licence);
+
+    return animeData.find(row =>
+        row[0] &&
+        normalizeLicenceKey(row[0]) === licenceKey
+    );
+}
+
+function isLicenceVisible(licence){
+
+    const row =
+        getLicenceRow(licence);
+
+    return Boolean(
+        row &&
+        (
+            showAllLicencesSecretMode ||
+            String(row[2] || "").trim() === "1"
+        )
+    );
+}
+
+function refreshAllTypes(){
+
+    allTypes = [...new Set(
+        allProducts
+            .filter(product =>
+                isLicenceVisible(product.licence)
+            )
+            .map(product => product.type)
+            .filter(Boolean)
+    )].sort();
+}
+
 function getPersosForLicence(licence){
 
     return [...new Set(
@@ -643,6 +681,9 @@ function findPersosFromSearch(query){
     const persos =
         [...new Set(
             allProducts
+                .filter(product =>
+                    isLicenceVisible(product.licence)
+                )
                 .flatMap(p => p._persos || [])
                 .filter(perso =>
                     perso &&
@@ -799,11 +840,7 @@ async function loadData(){
 
     console.timeEnd("JSON");
 
-    allTypes = [...new Set(
-        allProducts
-        .map(p => p.type)
-        .filter(Boolean)
-    )].sort();
+    refreshAllTypes();
 
 setTimeout(()=>{
 
@@ -1057,6 +1094,9 @@ function toggleLicenceCardsSize(){
 
 function buildLicenceCards(){
 
+    const renderGeneration =
+        ++licenceCardsRenderGeneration;
+
     const grid =
         document.getElementById(
             "licenceCardsGrid"
@@ -1092,7 +1132,11 @@ function buildLicenceCards(){
             );
 
     const licences =
-        sortedLicenceRows.map(r => r[0]);
+        sortedLicenceRows
+            .filter(r =>
+                !(Number(r[1]) >= 1)
+            )
+            .map(r => r[0]);
 
     const featuredLicences =
         licenceRows
@@ -1191,7 +1235,11 @@ function buildLicenceCards(){
 
     const appendNextChunk = ()=>{
 
-        if(nextIndex >= licences.length){
+        if(
+            renderGeneration !==
+                licenceCardsRenderGeneration ||
+            nextIndex >= licences.length
+        ){
             return;
         }
 
@@ -1212,6 +1260,13 @@ function buildLicenceCards(){
     };
 
     const scheduleNextChunk = ()=>{
+
+        if(
+            renderGeneration !==
+            licenceCardsRenderGeneration
+        ){
+            return;
+        }
 
         setTimeout(
             appendNextChunk,
@@ -1236,6 +1291,10 @@ function buildTopMenus(){
     const persosByLicence = new Map();
 
     allProducts.forEach(product=>{
+
+        if(!isLicenceVisible(product.licence)){
+            return;
+        }
 
         if(product.type && product.licence){
 
@@ -1633,7 +1692,12 @@ function getSortedLicences(){
 
     allProducts.forEach(p=>{
 
-        if(!p.licence) return;
+        if(
+            !p.licence ||
+            !isLicenceVisible(p.licence)
+        ){
+            return;
+        }
 
         const existingKey =
             [...licencesMap.keys()]
@@ -2543,6 +2607,10 @@ function startSearch(){
         normalizeLicenceKey(routeLicenceFilter);
 
     allResults = allProducts.filter(p=>{
+
+        if(!isLicenceVisible(p.licence)){
+            return false;
+        }
 
         if(
             routeLicenceFilter &&
@@ -4094,6 +4162,8 @@ document.addEventListener("DOMContentLoaded", function () {
             allAnime = animeData
                 .filter(r => showAllLicencesSecretMode || r[2] == "1")
                 .map(r => r[0]);
+
+            refreshAllTypes();
 
             buildSidebar();
             buildTopMenus();
