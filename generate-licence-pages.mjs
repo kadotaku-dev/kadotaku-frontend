@@ -16,6 +16,9 @@ const LICENCE_GROUPS = {
     "Dragon Ball Games",
   ],
 };
+const LEGACY_LICENCE_REDIRECTS = {
+  "konosuba-god's-blessing-on-this-wonderful-world": "konosuba",
+};
 
 const root = path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1");
 const indexPath = path.join(root, "index.html");
@@ -80,6 +83,26 @@ function slugLicence(licence) {
 
 function licenceUrl(licence) {
   return `${SITE_URL}/licence/${encodeURI(slugLicence(licence))}`;
+}
+
+function buildRedirectHtml(targetSlug) {
+  const targetUrl = `${SITE_URL}/licence/${encodeURI(targetSlug)}`;
+
+  return `<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=${escapeHtml(targetUrl)}">
+  <link rel="canonical" href="${escapeHtml(targetUrl)}">
+  <meta name="robots" content="noindex,follow">
+  <title>Redirection - Kadotaku</title>
+</head>
+<body>
+  <p><a href="${escapeHtml(targetUrl)}">Accéder à la nouvelle page</a></p>
+  <script>window.location.replace(${JSON.stringify(targetUrl)});</script>
+</body>
+</html>
+`;
 }
 
 function splitMultiValues(value) {
@@ -426,7 +449,10 @@ if (!onlyLicence) {
   );
 
   const licenceRoot = path.join(root, "licence");
-  const expectedSlugs = new Set(licences.map(slugLicence));
+  const expectedSlugs = new Set([
+    ...licences.map(slugLicence),
+    ...Object.keys(LEGACY_LICENCE_REDIRECTS),
+  ]);
   const existingEntries = await fs.readdir(licenceRoot, {
     withFileTypes: true,
   });
@@ -451,6 +477,18 @@ if (!onlyLicence) {
       recursive: true,
       force: true,
     });
+  }
+
+  for (const [legacySlug, targetSlug] of Object.entries(
+    LEGACY_LICENCE_REDIRECTS,
+  )) {
+    const redirectDir = path.join(licenceRoot, legacySlug);
+    await fs.mkdir(redirectDir, { recursive: true });
+    await fs.writeFile(
+      path.join(redirectDir, "index.html"),
+      buildRedirectHtml(targetSlug),
+      "utf8",
+    );
   }
 }
 
