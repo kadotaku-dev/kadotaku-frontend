@@ -20,6 +20,9 @@ const LICENCE_GROUPS = {
         "Dragon Ball Games"
     ]
 };
+const LICENCE_GROUP_PREFIXES = {
+    "Tales of Verse": "Tales of"
+};
 
 let allProducts = [];
 let allAnime = [];
@@ -532,11 +535,43 @@ function getLicenceGroup(licence){
                 normalizeLicenceKey(groupName) === licenceKey
             );
 
-    if(!groupEntry){
+    if(groupEntry){
+        return groupEntry[1];
+    }
+
+    const prefixEntry =
+        Object.entries(LICENCE_GROUP_PREFIXES)
+            .find(([groupName]) =>
+                normalizeLicenceKey(groupName) === licenceKey
+            );
+
+    if(!prefixEntry){
         return [];
     }
 
-    return groupEntry[1];
+    const prefixKey =
+        normalizeLicenceKey(prefixEntry[1]);
+
+    const knownLicences = [
+        ...animeData.map(row => row[0]),
+        ...allProducts.map(product => product.licence)
+    ];
+
+    return [
+        ...new Set(
+            knownLicences.filter(candidate => {
+
+                const candidateKey =
+                    normalizeLicenceKey(candidate);
+
+                return (
+                    candidateKey &&
+                    candidateKey !== licenceKey &&
+                    candidateKey.startsWith(prefixKey)
+                );
+            })
+        )
+    ];
 }
 
 function productMatchesLicence(product,licence){

@@ -16,6 +16,9 @@ const LICENCE_GROUPS = {
     "Dragon Ball Games",
   ],
 };
+const LICENCE_GROUP_PREFIXES = {
+  "Tales of Verse": "Tales of",
+};
 const LEGACY_LICENCE_REDIRECTS = {
   "konosuba-god's-blessing-on-this-wonderful-world": "konosuba",
 };
@@ -135,14 +138,42 @@ function getLicenceGroup(licence) {
   return groupEntry ? groupEntry[1] : [];
 }
 
+function licenceBelongsToGroup(productLicence, groupName) {
+  const staticGroup = getLicenceGroup(groupName);
+
+  if (
+    staticGroup.some(
+      (child) => normaliseKey(child) === normaliseKey(productLicence),
+    )
+  ) {
+    return true;
+  }
+
+  const prefixEntry = Object.entries(LICENCE_GROUP_PREFIXES).find(
+    ([name]) => normaliseKey(name) === normaliseKey(groupName),
+  );
+
+  if (!prefixEntry) {
+    return false;
+  }
+
+  const productKey = normaliseKey(productLicence);
+  const groupKey = normaliseKey(groupName);
+  const prefixKey = normaliseKey(prefixEntry[1]);
+
+  return (
+    productKey &&
+    productKey !== groupKey &&
+    productKey.startsWith(prefixKey)
+  );
+}
+
 function productMatchesLicence(product, licence) {
   if (normaliseKey(product.licence) === normaliseKey(licence)) {
     return true;
   }
 
-  return getLicenceGroup(licence).some(
-    (groupLicence) => normaliseKey(groupLicence) === normaliseKey(product.licence),
-  );
+  return licenceBelongsToGroup(product.licence, licence);
 }
 
 function joinFrenchList(items) {
@@ -194,14 +225,19 @@ function buildSeoData(products) {
     }
   }
 
-  for (const [groupName, childLicences] of Object.entries(LICENCE_GROUPS)) {
+  const groupNames = [
+    ...Object.keys(LICENCE_GROUPS),
+    ...Object.keys(LICENCE_GROUP_PREFIXES),
+  ];
+
+  for (const groupName of groupNames) {
     const groupData = {
       types: new Map(),
       persos: new Map(),
     };
 
     for (const [licence, seoData] of byLicence.entries()) {
-      if (!childLicences.some((child) => normaliseKey(child) === normaliseKey(licence))) {
+      if (!licenceBelongsToGroup(licence, groupName)) {
         continue;
       }
 
@@ -492,6 +528,24 @@ if (!onlyLicence) {
   }
 }
 
+const sitemapLicences = [];
+
+for (const licence of licences) {
+  const licenceIndex = path.join(
+    root,
+    "licence",
+    slugLicence(licence),
+    "index.html",
+  );
+
+  try {
+    await fs.access(licenceIndex);
+    sitemapLicences.push(licence);
+  } catch {
+    // A licence is added to the sitemap only after its HTML route exists.
+  }
+}
+
 const sitemap = [
   '<?xml version="1.0" encoding="UTF-8"?>',
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
@@ -501,7 +555,7 @@ const sitemap = [
   "  <url>",
   `    <loc>${SITE_URL}/catalogue</loc>`,
   "  </url>",
-  ...licences.flatMap((licence) => [
+  ...sitemapLicences.flatMap((licence) => [
     "  <url>",
     `    <loc>${licenceUrl(licence)}</loc>`,
     "  </url>",
