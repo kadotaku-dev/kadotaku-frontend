@@ -34,6 +34,11 @@ let userSelectedSort = false;
 let showAllLicencesSecretMode = false;
 let licenceCardsRenderGeneration = 0;
 let productCardsRenderGeneration = 0;
+let animeRowByLicenceKey = new Map();
+let productsByLicenceKey = new Map();
+let licenceGroupCache = new Map();
+let menusBuilt = false;
+let menusBuilding = false;
 let secretClickCount = 0;
 let secretClickTimer = null;
 const DEFAULT_MAX_PRICE = 1000;
@@ -251,6 +256,8 @@ async function adminHideProduct(button){
                     p._runtimeId !==
                     productRuntimeId
             );
+
+        rebuildProductIndexes();
 
         allResults =
             allResults.filter(
@@ -549,15 +556,29 @@ function getLicenceGroup(licence){
         return [];
     }
 
+    if(licenceGroupCache.has(licenceKey)){
+        return licenceGroupCache.get(licenceKey);
+    }
+
     const prefixKey =
         normalizeLicenceKey(prefixEntry[1]);
 
     const knownLicences = [
-        ...animeData.map(row => row[0]),
-        ...allProducts.map(product => product.licence)
+        ...[
+            ...animeRowByLicenceKey.values()
+        ]
+            .map(row => row[0]),
+        ...[
+            ...productsByLicenceKey.values()
+        ]
+            .flatMap(products =>
+                products.length
+                    ? [products[0].licence]
+                    : []
+            )
     ];
 
-    return [
+    const groupLicences = [
         ...new Set(
             knownLicences.filter(candidate => {
 
@@ -572,6 +593,57 @@ function getLicenceGroup(licence){
             })
         )
     ];
+
+    licenceGroupCache.set(
+        licenceKey,
+        groupLicences
+    );
+
+    return groupLicences;
+}
+
+function rebuildAnimeIndexes(){
+
+    animeRowByLicenceKey =
+        new Map(
+            animeData
+                .filter(row => row[0])
+                .map(row => [
+                    normalizeLicenceKey(row[0]),
+                    row
+                ])
+        );
+
+    licenceGroupCache.clear();
+}
+
+function rebuildProductIndexes(){
+
+    productsByLicenceKey = new Map();
+
+    allProducts.forEach(product =>{
+
+        const licenceKey =
+            product._licenceKey ||
+            normalizeLicenceKey(product.licence);
+
+        if(!licenceKey){
+            return;
+        }
+
+        if(!productsByLicenceKey.has(licenceKey)){
+            productsByLicenceKey.set(
+                licenceKey,
+                []
+            );
+        }
+
+        productsByLicenceKey
+            .get(licenceKey)
+            .push(product);
+    });
+
+    licenceGroupCache.clear();
 }
 
 function productMatchesLicence(product,licence){
@@ -623,8 +695,17 @@ function licencesEquivalent(a,b){
 
 function getProductsForLicence(licence){
 
-    return allProducts.filter(product =>
-        productMatchesLicence(product,licence)
+    const licenceKeys = [
+        normalizeLicenceKey(licence),
+        ...getLicenceGroup(licence)
+            .map(normalizeLicenceKey)
+    ].filter(Boolean);
+
+    return licenceKeys.flatMap(
+        licenceKey =>
+            productsByLicenceKey.get(
+                licenceKey
+            ) || []
     );
 }
 
@@ -633,9 +714,11 @@ function getLicenceRow(licence){
     const licenceKey =
         normalizeLicenceKey(licence);
 
-    return animeData.find(row =>
-        row[0] &&
-        normalizeLicenceKey(row[0]) === licenceKey
+    return (
+        animeRowByLicenceKey.get(
+            licenceKey
+        ) ||
+        null
     );
 }
 
@@ -836,7 +919,79 @@ function renderInitialProductsBeforeMenus(){
     startSearch();
 }
 
+function ensureMenusBuilt(){
+
+    if(
+        menusBuilt ||
+        menusBuilding ||
+        !productsLoaded
+    ){
+        return;
+    }
+
+    menusBuilding = true;
+
+    try{
+
+        buildSidebar();
+        buildTopMenus();
+
+        menusBuilt = true;
+
+    } finally {
+
+        menusBuilding = false;
+    }
+}
+
+function initLazyMenuBuildTriggers(){
+
+    document
+        .querySelectorAll(".menu-item")
+        .forEach(item =>{
+
+            if(item.dataset.lazyMenuReady === "1"){
+                return;
+            }
+
+            item.dataset.lazyMenuReady = "1";
+
+            item.addEventListener(
+                "pointerenter",
+                ensureMenusBuilt,
+                {passive:true}
+            );
+
+            item.addEventListener(
+                "pointerdown",
+                ensureMenusBuilt,
+                {passive:true}
+            );
+
+            item.addEventListener(
+                "focusin",
+                ensureMenusBuilt
+            );
+        });
+}
+
 function buildMenusAfterFirstProductPaint(){
+
+    initLazyMenuBuildTriggers();
+
+    if(isHomeRoute()){
+
+        requestAnimationFrame(()=>{
+
+            handleLicenceRoute();
+            showAmazonDisclosure();
+            updateFavoritesButton();
+
+            console.timeEnd("TOTAL");
+        });
+
+        return;
+    }
 
     const grid =
         document.getElementById(
@@ -894,9 +1049,7 @@ function buildMenusAfterFirstProductPaint(){
 
                 console.time("MENUS");
 
-                buildSidebar();
-
-                buildTopMenus();
+                ensureMenusBuilt();
 
                 handleLicenceRoute();
 
@@ -943,6 +1096,8 @@ async function loadData(){
     parseCSV(animeText);
 
     animeData.shift();
+
+    rebuildAnimeIndexes();
 
     allAnime = animeData
     .filter(r => showAllLicencesSecretMode || r[2] == "1")
@@ -994,6 +1149,8 @@ async function loadData(){
             .map(
                 prepareProduct
             );
+
+    rebuildProductIndexes();
 
     productsLoaded = true;
 
@@ -1117,6 +1274,8 @@ function buildSidebar(){
 /* SHOW HIDE PERSOS */
 
 function toggleSidebarSection(contentId,toggleId){
+
+    ensureMenusBuilt();
 
     const content =
         document.getElementById(contentId);
@@ -1813,6 +1972,7 @@ function closeTopMenusOnMobile(){
 function getSortedLicences(){
 
     const licencesMap = new Map();
+    const licenceKeys = new Set();
 
     animeData
         .filter(row =>
@@ -1831,6 +1991,10 @@ function getSortedLicences(){
                     priority:Number(row[1]) || 999999
                 }
             );
+
+            licenceKeys.add(
+                normalizeLicenceKey(row[0])
+            );
         });
 
     allProducts.forEach(p=>{
@@ -1842,23 +2006,16 @@ function getSortedLicences(){
             return;
         }
 
-        const existingKey =
-            [...licencesMap.keys()]
-                .find(licence =>
-                    normalizeLicenceKey(licence) ===
-                    normalizeLicenceKey(p.licence)
-                );
+        const productLicenceKey =
+            p._licenceKey ||
+            normalizeLicenceKey(p.licence);
 
-        if(existingKey){
+        if(licenceKeys.has(productLicenceKey)){
             return;
         }
 
         const animeRow =
-    animeData.find(
-        r =>
-            normalizeLicenceKey(r[0]) ===
-            normalizeLicenceKey(p.licence)
-    );
+            getLicenceRow(p.licence);
 
 const priority =
 
@@ -1875,6 +2032,10 @@ const priority =
                     name:p.licence,
                     priority
                 }
+            );
+
+            licenceKeys.add(
+                productLicenceKey
             );
     });
 
@@ -4739,8 +4900,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             refreshAllTypes();
 
-            buildSidebar();
-            buildTopMenus();
+            menusBuilt = false;
+            ensureMenusBuilt();
             buildLicenceCards();
 
             const params =
