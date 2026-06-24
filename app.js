@@ -55,6 +55,36 @@ let favorites = JSON.parse(
 
 let favoritesMode = false;
 
+const USER_LICENCE_FAVORITES_KEY =
+    "kadotaku_user_licence_favorites";
+
+function loadUserLicenceFavorites(){
+
+    try{
+
+        const stored =
+            JSON.parse(
+                localStorage.getItem(
+                    USER_LICENCE_FAVORITES_KEY
+                ) || "[]"
+            );
+
+        return Array.isArray(stored)
+            ? stored.filter(value =>
+                typeof value === "string" &&
+                value.trim()
+            )
+            : [];
+
+    } catch(error){
+
+        return [];
+    }
+}
+
+let userLicenceFavorites =
+    loadUserLicenceFavorites();
+
 let routeLicenceFilter = "";
 
 routeLicenceFilter = "";
@@ -1394,6 +1424,169 @@ function toggleLicenceCardsSize(){
     grid.classList.toggle("compact");
 }
 
+function isUserLicenceFavorite(licence){
+
+    const key =
+        normalizeLicenceKey(licence);
+
+    return userLicenceFavorites.some(
+        favorite =>
+            normalizeLicenceKey(favorite) === key
+    );
+}
+
+function saveUserLicenceFavorites(){
+
+    localStorage.setItem(
+        USER_LICENCE_FAVORITES_KEY,
+        JSON.stringify(userLicenceFavorites)
+    );
+}
+
+function refreshUserLicenceFavoriteControls(licence){
+
+    const favorite =
+        isUserLicenceFavorite(licence);
+
+    document
+        .querySelectorAll(
+            ".licence-card-user-favorite"
+        )
+        .forEach(control =>{
+
+            const controlLicence =
+                decodeURIComponent(
+                    control.dataset.licence || ""
+                );
+
+            if(
+                normalizeLicenceKey(controlLicence) !==
+                normalizeLicenceKey(licence)
+            ){
+                return;
+            }
+
+            control.classList.toggle(
+                "active",
+                favorite
+            );
+
+            control.setAttribute(
+                "aria-label",
+                `${favorite ? "Retirer" : "Ajouter"} ${licence} des licences favorites`
+            );
+
+            control.title =
+                favorite
+                    ? "Retirer des favoris"
+                    : "Ajouter aux favoris";
+        });
+}
+
+function updateUserFeaturedLicenceCard(
+    licence,
+    sourceCard
+){
+
+    const userFeaturedGrid =
+        document.getElementById(
+            "userFeaturedLicenceCardsGrid"
+        );
+
+    if(!userFeaturedGrid){
+        return;
+    }
+
+    userFeaturedGrid
+        .querySelectorAll(
+            ".licence-card"
+        )
+        .forEach(card =>{
+
+            const cardLicence =
+                decodeURIComponent(
+                    card
+                        .querySelector(
+                            ".licence-card-user-favorite"
+                        )
+                        ?.dataset
+                        .licence || ""
+                );
+
+            if(
+                normalizeLicenceKey(cardLicence) ===
+                normalizeLicenceKey(licence)
+            ){
+                card.remove();
+            }
+        });
+
+    if(
+        isUserLicenceFavorite(licence) &&
+        sourceCard
+    ){
+
+        const miniCard =
+            sourceCard.cloneNode(true);
+
+        miniCard.classList.add(
+            "featured-licence-card",
+            "user-featured-licence-card"
+        );
+
+        userFeaturedGrid.appendChild(
+            miniCard
+        );
+    }
+
+    userFeaturedGrid.style.display =
+        userFeaturedGrid.childElementCount
+            ? "grid"
+            : "none";
+}
+
+function toggleUserLicenceFavorite(event,element){
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const licence =
+        decodeURIComponent(
+            element.dataset.licence || ""
+        );
+
+    if(!licence){
+        return false;
+    }
+
+    const key =
+        normalizeLicenceKey(licence);
+
+    if(isUserLicenceFavorite(licence)){
+
+        userLicenceFavorites =
+            userLicenceFavorites.filter(
+                favorite =>
+                    normalizeLicenceKey(favorite) !== key
+            );
+
+    } else {
+
+        userLicenceFavorites.push(licence);
+    }
+
+    saveUserLicenceFavorites();
+    refreshUserLicenceFavoriteControls(
+        licence
+    );
+    updateUserFeaturedLicenceCard(
+        licence,
+        element.closest(".licence-card")
+    );
+
+    return false;
+}
+
 function buildLicenceCards(){
 
     const renderGeneration =
@@ -1409,8 +1602,31 @@ function buildLicenceCards(){
             "featuredLicenceCardsGrid"
         );
 
+    let userFeaturedGrid =
+        document.getElementById(
+            "userFeaturedLicenceCardsGrid"
+        );
+
     if(!grid){
         return;
+    }
+
+    if(!userFeaturedGrid){
+
+        userFeaturedGrid =
+            document.createElement("div");
+
+        userFeaturedGrid.id =
+            "userFeaturedLicenceCardsGrid";
+
+        userFeaturedGrid.className =
+            "featured-licence-cards-grid user-featured-licence-cards-grid";
+
+        featuredGrid
+            ?.insertAdjacentElement(
+                "afterend",
+                userFeaturedGrid
+            );
     }
 
     const licenceRows = animeData
@@ -1469,24 +1685,63 @@ function buildLicenceCards(){
             })
             .map(r => r[0]);
 
-    const buildCardHTML = (licence,index,extraClass = "") => `
+    const availableLicenceByKey =
+        new Map(
+            licenceRows.map(row =>[
+                normalizeLicenceKey(row[0]),
+                row[0]
+            ])
+        );
+
+    const userFeaturedLicences =
+        userLicenceFavorites
+            .map(licence =>
+                availableLicenceByKey.get(
+                    normalizeLicenceKey(licence)
+                )
+            )
+            .filter(Boolean);
+
+    const buildCardHTML = (
+        licence,
+        index,
+        extraClass = "",
+        showFavoriteControl = false
+    ) => `
 
             <a
                 href="/?licence=${encodeURIComponent(licence)}"
-                class="licence-card ${extraClass}"
-                title="${licence}"
+                class="licence-card ${extraClass} ${showFavoriteControl ? "has-user-favorite-control" : ""}"
+                title="${escapeAttr(licence)}"
             >
 
                 <img
                     src="/cards/thumbs/Card ${licence}.webp"
-                    alt="${licence}"
+                    alt="${escapeAttr(licence)}"
                     loading="${index < 12 ? "eager" : "lazy"}"
                     fetchpriority="${index < 8 ? "high" : "auto"}"
                 >
 
                 <div class="licence-card-title">
-                    ${licence}
+                    ${escapeHtml(licence)}
                 </div>
+
+                ${
+                    showFavoriteControl
+                    ? `
+                        <span
+                            class="licence-card-user-favorite ${isUserLicenceFavorite(licence) ? "active" : ""}"
+                            data-licence="${encodeURIComponent(licence)}"
+                            role="button"
+                            tabindex="0"
+                            aria-label="${isUserLicenceFavorite(licence) ? "Retirer" : "Ajouter"} ${escapeAttr(licence)} des licences favorites"
+                            title="${isUserLicenceFavorite(licence) ? "Retirer des favoris" : "Ajouter aux favoris"}"
+                            onclick="return toggleUserLicenceFavorite(event,this);"
+                            onkeydown="if(event.key === 'Enter' || event.key === ' '){ return toggleUserLicenceFavorite(event,this); }"
+                        ></span>
+                    `
+                    : ""
+                }
 
                 <span
                     class="licence-card-expand"
@@ -1513,6 +1768,27 @@ function buildLicenceCards(){
                 .join("");
     }
 
+    if(userFeaturedGrid){
+
+        userFeaturedGrid.innerHTML =
+            userFeaturedLicences
+                .map((licence,index)=>
+                    buildCardHTML(
+                        licence,
+                        index,
+                        "featured-licence-card user-featured-licence-card",
+                        true
+                    )
+                )
+                .join("");
+
+        userFeaturedGrid.style.display =
+            userFeaturedLicences.length &&
+            grid.style.display !== "none"
+                ? "grid"
+                : "none";
+    }
+
     const firstBatchSize = 12;
     const chunkSize = 12;
 
@@ -1522,7 +1798,9 @@ function buildLicenceCards(){
             .map((licence,index)=>
                 buildCardHTML(
                     licence,
-                    start + index
+                    start + index,
+                    "",
+                    true
                 )
             )
             .join("");
@@ -4363,6 +4641,18 @@ function handleLicenceRoute(){
             ?.style
             .setProperty("display","grid");
 
+        const userFeaturedGrid =
+            document.getElementById(
+                "userFeaturedLicenceCardsGrid"
+            );
+
+        if(
+            userFeaturedGrid &&
+            userFeaturedGrid.childElementCount
+        ){
+            userFeaturedGrid.style.display = "grid";
+        }
+
         document.getElementById(
             "licenceCardsSizeToggle"
         ).style.display = "flex";
@@ -4391,6 +4681,11 @@ function handleLicenceRoute(){
 
         document
             .getElementById("featuredLicenceCardsGrid")
+            ?.style
+            .setProperty("display","none");
+
+        document
+            .getElementById("userFeaturedLicenceCardsGrid")
             ?.style
             .setProperty("display","none");
 
@@ -4444,6 +4739,11 @@ function handleLicenceRoute(){
             ?.style
             .setProperty("display","none");
 
+        document
+            .getElementById("userFeaturedLicenceCardsGrid")
+            ?.style
+            .setProperty("display","none");
+
         if(productGrid){
             productGrid.style.display = "grid";
         }
@@ -4486,6 +4786,11 @@ function handleLicenceRoute(){
 
     document
         .getElementById("featuredLicenceCardsGrid")
+        ?.style
+        .setProperty("display","none");
+
+    document
+        .getElementById("userFeaturedLicenceCardsGrid")
         ?.style
         .setProperty("display","none");
 
