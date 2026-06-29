@@ -3558,7 +3558,7 @@ function buildProductCardHTML(
 
     const productImageTitle =
         productCharacters
-            ? `Personnage : ${productCharacters}`
+            ? productCharacters
             : "";
 
     const adminButton =
