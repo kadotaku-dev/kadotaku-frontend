@@ -3188,9 +3188,27 @@ function startSearch(){
     const routeLicenceKey =
         normalizeLicenceKey(routeLicenceFilter);
 
+    const activeLicenceScopes =
+        [
+            routeLicenceFilter,
+            searchedLicence,
+            ...selectedLicences,
+            ...selectedPersosByLicence.keys()
+        ]
+            .filter(Boolean)
+            .filter(licence =>
+                isLicenceVisible(licence) &&
+                getLicenceGroup(licence).length
+            );
+
     allResults = allProducts.filter(p=>{
 
-        if(!isLicenceVisible(p.licence)){
+        if(
+            !isLicenceVisible(p.licence) &&
+            !activeLicenceScopes.some(licence =>
+                productMatchesLicence(p,licence)
+            )
+        ){
             return false;
         }
 
