@@ -2765,20 +2765,25 @@ function updateActiveFilters(){
     if(quickTopType){
 
         addFilterTag(
-            'type:' + quickTopType,
+            'quick-type:' + quickTopType,
             `
                 <div class="filter-tag">
 
-                    ${quickTopType}
+                    ${escapeHtml(quickTopType)}
 
                     <span
                         class="filter-remove"
+                        data-value="${encodeURIComponent(quickTopType)}"
                         onclick="
-                            quickTopType='';
-                            startSearch();
+                            removeFilter(
+                                'quickType',
+                                decodeURIComponent(
+                                    this.dataset.value
+                                )
+                            )
                         "
                     >
-                        ✕
+                        &times;
                     </span>
 
                 </div>
@@ -3424,6 +3429,11 @@ function startSearch(){
 }
 
 function removeFilter(type,value){
+
+    if(type === 'quickType'){
+
+        quickTopType = "";
+    }
 
         if(
         type === "licence" &&
@@ -4657,7 +4667,7 @@ function handleLicenceRoute(){
         !localLicence
     ){
 
-        routeLicenceFilter = "";
+        resetAllFiltersForTopDropdown();
 
         updateSidebarPromoCard("home");
 
@@ -4700,7 +4710,7 @@ function handleLicenceRoute(){
         localPage === "catalogue"
     ){
 
-        routeLicenceFilter = "";
+        resetAllFiltersForTopDropdown();
 
         updateSidebarPromoCard("catalogue");
 
