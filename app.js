@@ -3542,6 +3542,15 @@ function buildProductCardHTML(
     prioritizeImage = false
 ){
 
+    const productCharacters =
+        splitMultiValues(product.perso)
+            .join(", ");
+
+    const productImageTitle =
+        productCharacters
+            ? `Personnage : ${productCharacters}`
+            : "";
+
     const adminButton =
         isAdminMode()
 
@@ -3592,6 +3601,8 @@ function buildProductCardHTML(
                     loading="${prioritizeImage ? "eager" : "lazy"}"
                     fetchpriority="${prioritizeImage ? "high" : "auto"}"
                     src="${escapeAttr(product.image)}"
+                    ${productImageTitle ? `title="${escapeAttr(productImageTitle)}"` : ""}
+                    ${productImageTitle ? `aria-label="${escapeAttr(productImageTitle)}"` : ""}
                     onclick="
                         openModal(
                             '${escapeAttr(product.image)}',
