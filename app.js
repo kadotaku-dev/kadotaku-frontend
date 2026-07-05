@@ -47,6 +47,8 @@ const DEFAULT_MAX_PRICE = 1000;
 const NEW_LICENCE_WINDOW_DAYS = 14;
 const DISMISSED_NEW_LICENCES_KEY =
     "kadotaku_dismissed_new_licences";
+const NEW_LICENCES_SEEN_SESSION_KEY =
+    "kadotaku_new_licences_seen_session";
 
 let waifuMode = false;
 
@@ -205,6 +207,36 @@ function saveDismissedNewLicences(licences){
         JSON.stringify(
             [...new Set(licences)]
         )
+    );
+}
+
+function cameFromKadotakuPage(){
+
+    if(!document.referrer){
+        return false;
+    }
+
+    try{
+
+        const referrerUrl =
+            new URL(document.referrer);
+
+        return referrerUrl.origin ===
+            window.location.origin;
+
+    } catch(error){
+
+        return false;
+    }
+}
+
+function shouldShowNewLicencesModal(){
+
+    return (
+        sessionStorage.getItem(
+            NEW_LICENCES_SEEN_SESSION_KEY
+        ) !== "1" &&
+        !cameFromKadotakuPage()
     );
 }
 
@@ -964,6 +996,10 @@ function getRecentActiveLicences(){
 
 function showNewLicencesModal(){
 
+    if(!shouldShowNewLicencesModal()){
+        return;
+    }
+
     const recentLicences =
         getRecentActiveLicences();
 
@@ -1046,6 +1082,11 @@ function showNewLicencesModal(){
             </button>
         </div>
     `;
+
+    sessionStorage.setItem(
+        NEW_LICENCES_SEEN_SESSION_KEY,
+        "1"
+    );
 
     modal.style.display = "flex";
 }
