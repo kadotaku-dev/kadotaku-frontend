@@ -982,14 +982,22 @@ function showNewLicencesModal(){
             document.createElement("div");
 
         modal.id = "newLicencesModal";
-        modal.className = "new-licences-modal";
 
         document.body.appendChild(modal);
     }
 
+    modal.className =
+        `new-licences-modal ${
+            recentLicences.length === 1
+                ? "single"
+                : recentLicences.length > 4
+                    ? "many"
+                    : ""
+        }`;
+
     modal.innerHTML = `
         <div class="new-licences-dialog">
-            <h2>Nouvelles licences</h2>
+            <h2>Nouvelles licences ajoutées</h2>
 
             <div class="new-licences-grid">
                 ${recentLicences.map(item => `

@@ -1610,7 +1610,7 @@ body{
 
 .new-licences-dialog{
 
-    width:min(920px,96vw);
+    width:min(720px,96vw);
 
     max-height:88vh;
 
@@ -1629,6 +1629,16 @@ body{
         0 0 0 1px rgba(255,255,255,0.05);
 }
 
+.new-licences-modal.single .new-licences-dialog{
+
+    width:min(270px,92vw);
+}
+
+.new-licences-modal.many .new-licences-dialog{
+
+    width:min(760px,96vw);
+}
+
 .new-licences-dialog h2{
 
     margin:0 0 16px;
@@ -1645,9 +1655,23 @@ body{
     display:grid;
 
     grid-template-columns:
-        repeat(auto-fill,minmax(150px,1fr));
+        repeat(auto-fit,minmax(150px,1fr));
 
     gap:14px;
+}
+
+.new-licences-modal.single .new-licences-grid{
+
+    grid-template-columns:1fr;
+}
+
+.new-licences-modal.many .new-licences-grid{
+
+    max-height:52vh;
+
+    overflow-y:auto;
+
+    padding-right:6px;
 }
 
 .new-licence-item{
