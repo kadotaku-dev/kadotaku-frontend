@@ -39,6 +39,7 @@ let productsByLicenceKey = new Map();
 let licenceGroupCache = new Map();
 let menusBuilt = false;
 let menusBuilding = false;
+let topMenusPinnedLicenceKey = "";
 let secretClickCount = 0;
 let secretClickTimer = null;
 const DEFAULT_MAX_PRICE = 1000;
@@ -1859,6 +1860,48 @@ function buildLicenceCards(){
 
 /* TOP MENUS */
 
+function getTopMenuPinnedLicence(){
+
+    if(routeLicenceFilter){
+        return routeLicenceFilter;
+    }
+
+    const selectedLicences =
+        [
+            ...document.querySelectorAll(
+                '.licence-checkbox:checked'
+            )
+        ]
+            .map(input => input.value)
+            .filter(Boolean);
+
+    return selectedLicences.length === 1
+        ? selectedLicences[0]
+        : "";
+}
+
+function refreshTopMenusPinnedLicence(){
+
+    if(
+        !menusBuilt ||
+        menusBuilding ||
+        !productsLoaded
+    ){
+        return;
+    }
+
+    const nextPinnedLicenceKey =
+        normalizeLicenceKey(
+            getTopMenuPinnedLicence()
+        );
+
+    if(nextPinnedLicenceKey === topMenusPinnedLicenceKey){
+        return;
+    }
+
+    buildTopMenus();
+}
+
 function buildTopMenus(){
 
     const typesDropdown =
@@ -1869,6 +1912,13 @@ function buildTopMenus(){
 
     const licencesByType = new Map();
     const persosByLicence = new Map();
+    const pinnedLicence =
+        getTopMenuPinnedLicence();
+    const pinnedLicenceKey =
+        normalizeLicenceKey(pinnedLicence);
+
+    topMenusPinnedLicenceKey =
+        pinnedLicenceKey;
 
     allProducts.forEach(product=>{
 
@@ -1964,6 +2014,22 @@ function buildTopMenus(){
             ...(licencesByType.get(type) || [])
         ].sort();
 
+        const pinnedTypeLicence =
+            pinnedLicenceKey
+                ? licences.find(licence =>
+                    normalizeLicenceKey(licence) ===
+                    pinnedLicenceKey
+                ) || ""
+                : "";
+
+        const licencesForTypeSubmenu =
+            pinnedTypeLicence
+                ? [
+                    pinnedTypeLicence,
+                    ...licences
+                ]
+                : licences;
+
         const submenu = `
             <div
                 class="dropdown-item"
@@ -1979,7 +2045,7 @@ function buildTopMenus(){
             >
                 Toutes les licences
             </div>
-            ${licences.map(licence => `
+            ${licencesForTypeSubmenu.map(licence => `
                 <div
                     class="dropdown-item"
 
@@ -3132,6 +3198,8 @@ function startSearch(){
 
     const selectedLicenceSet =
         new Set(selectedLicences);
+
+    refreshTopMenusPinnedLicence();
 
     const selectedPersos =
 
