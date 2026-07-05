@@ -27,6 +27,7 @@ const LICENCE_GROUP_PREFIXES = {
 let allProducts = [];
 let allAnime = [];
 let animeData = [];
+let animeHeaders = [];
 let allTypes = [];
 let allResults = [];
 let productsLoaded = false;
@@ -43,6 +44,9 @@ let topMenusPinnedLicenceKey = "";
 let secretClickCount = 0;
 let secretClickTimer = null;
 const DEFAULT_MAX_PRICE = 1000;
+const NEW_LICENCE_WINDOW_DAYS = 14;
+const DISMISSED_NEW_LICENCES_KEY =
+    "kadotaku_dismissed_new_licences";
 
 let waifuMode = false;
 
@@ -103,6 +107,105 @@ function escapeHtml(value){
 function escapeAttr(value){
 
     return escapeHtml(value);
+}
+
+function normalizeHeaderName(value){
+
+    return normalizeText(value)
+        .replace(/[^a-z0-9]/g,"");
+}
+
+function getLicenceActivationDateIndex(){
+
+    const acceptedHeaders =
+        new Set([
+            "dateactivation",
+            "activationdate",
+            "activele",
+            "actifle",
+            "datedactivation",
+            "dateactif",
+            "dateactive",
+            "nouveaudepuis",
+            "nouveaute",
+            "nouveauteactive"
+        ]);
+
+    return animeHeaders.findIndex(header =>
+        acceptedHeaders.has(
+            normalizeHeaderName(header)
+        )
+    );
+}
+
+function parseLicenceActivationDate(value){
+
+    const clean =
+        String(value || "").trim();
+
+    if(!clean){
+        return null;
+    }
+
+    let year;
+    let month;
+    let day;
+
+    let match =
+        clean.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+
+    if(match){
+        year = Number(match[1]);
+        month = Number(match[2]);
+        day = Number(match[3]);
+    } else {
+
+        match =
+            clean.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+
+        if(match){
+            day = Number(match[1]);
+            month = Number(match[2]);
+            year = Number(match[3]);
+        }
+    }
+
+    if(!year || !month || !day){
+        return null;
+    }
+
+    const date =
+        new Date(year,month - 1,day);
+
+    return Number.isNaN(date.getTime())
+        ? null
+        : date;
+}
+
+function loadDismissedNewLicences(){
+
+    try{
+
+        return JSON.parse(
+            localStorage.getItem(
+                DISMISSED_NEW_LICENCES_KEY
+            ) || "[]"
+        );
+
+    } catch(error){
+
+        return [];
+    }
+}
+
+function saveDismissedNewLicences(licences){
+
+    localStorage.setItem(
+        DISMISSED_NEW_LICENCES_KEY,
+        JSON.stringify(
+            [...new Set(licences)]
+        )
+    );
 }
 
 function slugLicence(licence){
@@ -793,10 +896,179 @@ function getPersosForLicence(licence){
 
 function getLicenceAliases(row){
 
+    const activationDateIndex =
+        getLicenceActivationDateIndex();
+
     return [
         row[0],
-        ...row.slice(3).flatMap(splitMultiValues)
+        ...row
+            .slice(3)
+            .filter((value,index) =>
+                index + 3 !== activationDateIndex
+            )
+            .flatMap(splitMultiValues)
     ].filter(Boolean);
+}
+
+function getRecentActiveLicences(){
+
+    const dateIndex =
+        getLicenceActivationDateIndex();
+
+    if(dateIndex < 0){
+        return [];
+    }
+
+    const dismissedKeys =
+        new Set(
+            loadDismissedNewLicences()
+                .map(normalizeLicenceKey)
+        );
+
+    const now =
+        new Date();
+
+    const windowMs =
+        NEW_LICENCE_WINDOW_DAYS *
+        24 *
+        60 *
+        60 *
+        1000;
+
+    return animeData
+        .filter(row =>
+            row[0] &&
+            String(row[2] || "").trim() === "1"
+        )
+        .map(row => ({
+            licence:row[0],
+            date:parseLicenceActivationDate(row[dateIndex])
+        }))
+        .filter(item =>
+            item.date &&
+            now - item.date >= 0 &&
+            now - item.date <= windowMs &&
+            !dismissedKeys.has(
+                normalizeLicenceKey(item.licence)
+            )
+        )
+        .sort((a,b) =>
+            b.date - a.date ||
+            a.licence.localeCompare(
+                b.licence,
+                "fr",
+                {sensitivity:"base"}
+            )
+        );
+}
+
+function showNewLicencesModal(){
+
+    const recentLicences =
+        getRecentActiveLicences();
+
+    if(!recentLicences.length){
+        return;
+    }
+
+    let modal =
+        document.getElementById(
+            "newLicencesModal"
+        );
+
+    if(!modal){
+
+        modal =
+            document.createElement("div");
+
+        modal.id = "newLicencesModal";
+        modal.className = "new-licences-modal";
+
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="new-licences-dialog">
+            <h2>Nouvelles licences</h2>
+
+            <div class="new-licences-grid">
+                ${recentLicences.map(item => `
+                    <div class="new-licence-item">
+                        <a
+                            href="/licence/${encodeURIComponent(slugLicence(item.licence))}"
+                            class="new-licence-card"
+                            data-licence="${encodeURIComponent(item.licence)}"
+                            title="${escapeAttr(item.licence)}"
+                            onclick="
+                                event.preventDefault();
+                                closeNewLicencesModal();
+                                goToLicencePage(
+                                    decodeURIComponent(
+                                        this.dataset.licence
+                                    )
+                                );
+                            "
+                        >
+                            <img
+                                src="/cards/thumbs/Card ${escapeAttr(item.licence)}.webp"
+                                alt="${escapeAttr(item.licence)}"
+                                loading="lazy"
+                            >
+
+                            <span>${escapeHtml(item.licence)}</span>
+                        </a>
+
+                        <label class="new-licence-dismiss">
+                            <input
+                                type="checkbox"
+                                value="${escapeAttr(item.licence)}"
+                            >
+                            Ne plus afficher
+                        </label>
+                    </div>
+                `).join("")}
+            </div>
+
+            <button
+                type="button"
+                class="new-licences-ok"
+                onclick="closeNewLicencesModal()"
+            >
+                OK
+            </button>
+        </div>
+    `;
+
+    modal.style.display = "flex";
+}
+
+function closeNewLicencesModal(){
+
+    const modal =
+        document.getElementById(
+            "newLicencesModal"
+        );
+
+    if(!modal){
+        return;
+    }
+
+    const checkedLicences =
+        [
+            ...modal.querySelectorAll(
+                "input[type='checkbox']:checked"
+            )
+        ].map(input => input.value);
+
+    if(checkedLicences.length){
+
+        saveDismissedNewLicences([
+            ...loadDismissedNewLicences(),
+            ...checkedLicences
+        ]);
+    }
+
+    modal.style.display = "none";
 }
 
 function findLicenceFromSearch(query){
@@ -1123,10 +1395,14 @@ async function loadData(){
     const animeText =
         await animeRes.text();
 
-    animeData =
-    parseCSV(animeText);
+    const parsedAnimeData =
+        parseCSV(animeText);
 
-    animeData.shift();
+    animeHeaders =
+        parsedAnimeData.shift() || [];
+
+    animeData =
+        parsedAnimeData;
 
     rebuildAnimeIndexes();
 
@@ -1141,6 +1417,8 @@ async function loadData(){
     if(isHomeRoute()){
         handleLicenceRoute();
     }
+
+    showNewLicencesModal();
 
     console.timeEnd("HOME_RENDER");
 
@@ -2045,9 +2323,14 @@ function buildTopMenus(){
             >
                 Toutes les licences
             </div>
-            ${licencesForTypeSubmenu.map(licence => `
+            ${licencesForTypeSubmenu.map((licence,index) => `
                 <div
-                    class="dropdown-item"
+                    class="dropdown-item ${
+                        pinnedTypeLicence &&
+                        index === 0
+                            ? "pinned-type-licence"
+                            : ""
+                    }"
 
                     data-type="${encodeURIComponent(type)}"
 
