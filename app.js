@@ -36,6 +36,7 @@ let showAllLicencesSecretMode = false;
 let licenceCardsRenderGeneration = 0;
 let productCardsRenderGeneration = 0;
 let animeRowByLicenceKey = new Map();
+let licenceGroupsFromSheet = new Map();
 let productsByLicenceKey = new Map();
 let licenceGroupCache = new Map();
 let menusBuilt = false;
@@ -702,14 +703,22 @@ function getLicenceGroup(licence){
     const licenceKey =
         normalizeLicenceKey(licence);
 
+    const sheetGroup =
+        licenceGroupsFromSheet.get(licenceKey);
+
     const groupEntry =
         Object.entries(LICENCE_GROUPS)
             .find(([groupName]) =>
                 normalizeLicenceKey(groupName) === licenceKey
             );
 
-    if(groupEntry){
-        return groupEntry[1];
+    if(sheetGroup || groupEntry){
+        return [
+            ...new Set([
+                ...(sheetGroup || []),
+                ...(groupEntry ? groupEntry[1] : [])
+            ])
+        ];
     }
 
     const prefixEntry =
@@ -779,6 +788,28 @@ function rebuildAnimeIndexes(){
                     row
                 ])
         );
+
+    licenceGroupsFromSheet = new Map();
+
+    animeData
+        .filter(row => row[0] && row[3])
+        .forEach(row =>{
+
+            const groupKey =
+                normalizeLicenceKey(row[3]);
+
+            if(!groupKey){
+                return;
+            }
+
+            if(!licenceGroupsFromSheet.has(groupKey)){
+                licenceGroupsFromSheet.set(groupKey,[]);
+            }
+
+            licenceGroupsFromSheet
+                .get(groupKey)
+                .push(row[0]);
+        });
 
     licenceGroupCache.clear();
 }

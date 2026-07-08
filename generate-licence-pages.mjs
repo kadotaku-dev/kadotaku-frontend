@@ -21,7 +21,14 @@ const LICENCE_GROUP_PREFIXES = {
 };
 const LEGACY_LICENCE_REDIRECTS = {
   "konosuba-god's-blessing-on-this-wonderful-world": "konosuba",
+  "cautious-hero--the-hero-is-overpowered-but-overly-cautious":
+    "cautious-hero-the-hero-is-overpowered-but-overly-cautious",
+  "yaiba--samurai-legend": "yaiba-samurai-legend",
+  "youjo-senki--saga-of-tanya-the-evil":
+    "youjo-senki-saga-of-tanya-the-evil",
 };
+let licenceGroupsFromSheet = new Map();
+let licenceGroupNamesFromSheet = new Set();
 
 const root = path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1");
 const indexPath = path.join(root, "index.html");
@@ -131,11 +138,21 @@ function normaliseKey(value) {
 
 function getLicenceGroup(licence) {
   const licenceKey = normaliseKey(licence);
+  const sheetGroup = licenceGroupsFromSheet.get(licenceKey);
   const groupEntry = Object.entries(LICENCE_GROUPS).find(
     ([groupName]) => normaliseKey(groupName) === licenceKey,
   );
 
-  return groupEntry ? groupEntry[1] : [];
+  if (sheetGroup || groupEntry) {
+    return [
+      ...new Set([
+        ...(sheetGroup || []),
+        ...(groupEntry ? groupEntry[1] : []),
+      ]),
+    ];
+  }
+
+  return [];
 }
 
 function licenceBelongsToGroup(productLicence, groupName) {
@@ -226,6 +243,7 @@ function buildSeoData(products) {
   }
 
   const groupNames = [
+    ...licenceGroupNamesFromSheet,
     ...Object.keys(LICENCE_GROUPS),
     ...Object.keys(LICENCE_GROUP_PREFIXES),
   ];
@@ -235,8 +253,23 @@ function buildSeoData(products) {
       types: new Map(),
       persos: new Map(),
     };
+    const directData = findSeoData(groupName, byLicence);
+
+    if (directData) {
+      for (const [type, count] of directData.types.entries()) {
+        groupData.types.set(type, (groupData.types.get(type) || 0) + count);
+      }
+
+      for (const [perso, count] of directData.persos.entries()) {
+        groupData.persos.set(perso, (groupData.persos.get(perso) || 0) + count);
+      }
+    }
 
     for (const [licence, seoData] of byLicence.entries()) {
+      if (normaliseKey(licence) === normaliseKey(groupName)) {
+        continue;
+      }
+
       if (!licenceBelongsToGroup(licence, groupName)) {
         continue;
       }
@@ -295,6 +328,8 @@ function productTypeLabel(type) {
   if (lower.includes("tirelire")) return "tirelires";
   if (lower.includes("maquette")) return "maquettes";
   if (lower.includes("tapis de souris")) return "tapis de souris";
+  if (lower.includes("papercraft")) return "papercrafts";
+  if (lower.includes("boÃ®te Ã  musique") || lower.includes("boîte à musique")) return "boîtes à musique";
   if (lower.includes("goodies")) return "goodies";
   if (lower.includes("porte-cl")) return "porte-clés";
   if (lower.includes("sticker") || lower.includes("décalcomanie")) return "stickers";
@@ -446,9 +481,33 @@ function buildCatalogueHtml(baseHtml) {
 
 const baseHtml = await fs.readFile(indexPath, "utf8");
 const csv = await (await fetch(SHEET_CSV_URL)).text();
+const rows = parseCsv(csv).slice(1);
+licenceGroupsFromSheet = new Map();
+licenceGroupNamesFromSheet = new Set();
+
+for (const row of rows) {
+  if (!row[0] || !row[3]) {
+    continue;
+  }
+
+  const groupKey = normaliseKey(row[3]);
+  const groupName = row[3].trim();
+
+  if (!groupKey) {
+    continue;
+  }
+
+  licenceGroupNamesFromSheet.add(groupName);
+
+  if (!licenceGroupsFromSheet.has(groupKey)) {
+    licenceGroupsFromSheet.set(groupKey, []);
+  }
+
+  licenceGroupsFromSheet.get(groupKey).push(row[0].trim());
+}
+
 const products = await (await fetch(PRODUCTS_API_URL)).json();
 const seoDataByLicence = buildSeoData(products);
-const rows = parseCsv(csv).slice(1);
 const licences = rows
   .filter((row) => row[0] && row[2] === "1")
   .map((row) => row[0].trim());
