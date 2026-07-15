@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 
 <head>
@@ -61,7 +61,7 @@ content="Découvrez les meilleures idées cadeaux anime et manga : figurines, go
     <div class="hero-background"></div>
 
     <img
-        src="/bandeau_calque.webp"
+        src="/bandeau_anime_calque.webp"
         class="hero-overlay"
         loading="eager"
         decoding="async"
@@ -107,7 +107,9 @@ content="Découvrez les meilleures idées cadeaux anime et manga : figurines, go
             class="menu-item"
         >
 
-            Types d'article ▼
+            <span class="desktop-menu-label">Types d'article</span>
+            <span class="mobile-menu-label">Types</span>
+            <span class="menu-arrow">▼</span>
 
             <div
                 class="dropdown"
@@ -129,22 +131,6 @@ content="Découvrez les meilleures idées cadeaux anime et manga : figurines, go
 
         </div>
 
-        <button
-            id="waifuButton"
-            title="Affiche uniquement les personnages féminins"
-            class="waifu-button"
-            onclick="toggleWaifuMode()"
-        >
-            Mode Waifu
-        </button>
-        
-        <button
-            class="favorites-toggle"
-            onclick="toggleFavoritesMode()"
-        >
-            ❤ Favoris
-        </button>
-
     </div>
 
     <div class="main-title-wrapper">
@@ -164,8 +150,24 @@ content="Découvrez les meilleures idées cadeaux anime et manga : figurines, go
     </a>
 
     <div class="main-title">
-    La référence pour tous les fans d'animes et de mangas
+    La référence pour tous les fans d'animes, mangas et jeux vidéo
     </div>
+
+    <button
+        id="waifuButton"
+        title="Affiche uniquement les personnages féminins"
+        class="waifu-button"
+        onclick="toggleWaifuMode()"
+    >
+        Mode Waifu
+    </button>
+
+    <button
+        class="favorites-toggle"
+        onclick="toggleFavoritesMode()"
+    >
+        <span class="favorites-toggle-heart">&#10084;</span> Favoris
+    </button>
 
     <a
     href="/?page=catalogue"
@@ -181,24 +183,6 @@ content="Découvrez les meilleures idées cadeaux anime et manga : figurines, go
 
 </a>
 
-    <div class="filters-wrapper">
-
-        <div
-            class="active-filters"
-            id="activeFilters"
-        ></div>
-
-        <div
-            class="clear-all-filters"
-            id="clearAllFilters"
-            title="Supprimer les filtres en cours"
-            onclick="clearAllFilters()"
-        >
-            ×
-        </div>
-
-    </div>
-
 </div>
 
     <div class="main-header-right">
@@ -210,7 +194,12 @@ content="Découvrez les meilleures idées cadeaux anime et manga : figurines, go
                 id="searchInput"
                 class="search-input"
                 placeholder="Naruto, figurine, Luffy..."
-                oninput="handleSearchInput()"
+                autocomplete="off"
+                autocapitalize="none"
+                enterkeyhint="search"
+                spellcheck="false"
+                oninput="handleSearchInput(event)"
+                oncompositionend="handleSearchInput(event)"
             >
 
         </div>
@@ -258,6 +247,24 @@ content="Découvrez les meilleures idées cadeaux anime et manga : figurines, go
             </option>
 
         </select>
+
+    </div>
+
+    <div class="filters-wrapper">
+
+        <div
+            class="active-filters"
+            id="activeFilters"
+        ></div>
+
+        <div
+            class="clear-all-filters"
+            id="clearAllFilters"
+            title="Supprimer les filtres en cours"
+            onclick="clearAllFilters()"
+        >
+            ×
+        </div>
 
     </div>
 

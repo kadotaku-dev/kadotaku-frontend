@@ -1,4 +1,4 @@
-const API_URL =
+﻿const API_URL =
 "https://kadotaku-backend-production.up.railway.app";
 
 const animeSheetURL =
@@ -42,14 +42,113 @@ let licenceGroupCache = new Map();
 let menusBuilt = false;
 let menusBuilding = false;
 let topMenusPinnedLicenceKey = "";
+let licenceUniverseMode = "anime";
 let secretClickCount = 0;
 let secretClickTimer = null;
 const DEFAULT_MAX_PRICE = 1000;
+const LICENCE_UNIVERSE_STORAGE_KEY =
+    "kadotaku_licence_universe_mode";
+
+const HERO_DISPLAY_MODE_STORAGE_KEY =
+    "kadotaku_hero_display_mode";
+
+const HERO_GAME_FULL_IMAGE =
+    "/bandeau_game_complet.webp";
+
+const HERO_ANIME_FULL_IMAGE =
+    "/bandeau_anime_complet.webp";
+
+const HERO_GAME_FULL_IMAGE_NO_TITLE =
+    "/bandeau_game_complet_sans_titre.webp";
+
+const HERO_ANIME_FULL_IMAGE_NO_TITLE =
+    "/bandeau_anime_complet_sans_titre.webp";
+
+const heroFullTitleVisible = {
+    anime: true,
+    game: true
+};
+
+let heroFullNoTitleAvailable = true;
+let heroFullNoTitleCheckToken = 0;
+
+const HERO_THEME_CACHE = new Map();
+
+let heroDisplayMode =
+    localStorage.getItem(
+        HERO_DISPLAY_MODE_STORAGE_KEY
+    ) || "banner";
 const NEW_LICENCE_WINDOW_DAYS = 14;
 const DISMISSED_NEW_LICENCES_KEY =
     "kadotaku_dismissed_new_licences";
 const NEW_LICENCES_SEEN_SESSION_KEY =
     "kadotaku_new_licences_seen_session";
+
+const SIDEBAR_PROMO_VARIANTS = {
+    anime: {
+        home: [
+            ["fern","Fern"],
+            ["groupe","Groupe"],
+            ["junko-enoshima","Junko Enoshima"],
+            ["mitsuri-kanroji","Mitsuri Kanroji"],
+            ["momo-ayase","Momo Ayase"]
+        ].map(([id,label]) => ({
+            id,
+            label,
+            image:
+                `/cards/Bouton Accueil Anime - ${label}.webp`
+        })),
+        catalogue: [
+            ["frieren-fern","Frieren et Fern"],
+            ["nami","Nami"],
+            ["nelliel-harribel","Nelliel et Tier Harribel"],
+            ["rem-ram","Rem et Ram"],
+            ["shuna-shion","Shuna et Shion"]
+        ].map(([id,label]) => ({
+            id,
+            label,
+            image:
+                `/cards/Bouton Catalogue Anime - ${label}.webp`
+        }))
+    },
+    game: {
+        home: [
+            ["ada-wong","Ada Wong"],
+            ["ahri","Ahri"],
+            ["gustave","Gustave"],
+            ["hatsune-miku","Hatsune Miku"],
+            ["kassandra","Kassandra"],
+            ["lara-croft","Lara Croft"],
+            ["mario","Mario"],
+            ["princesse-zelda","Princesse Zelda"],
+            ["sniper-wolf-v1","Sniper Wolf v1"],
+            ["sniper-wolf-v2","Sniper Wolf v2"],
+            ["verso","Verso"]
+        ].map(([id,label]) => ({
+            id,
+            label,
+            image:
+                `/cards/Bouton Accueil Game - ${label}.webp`
+        })),
+        catalogue: [
+            ["chun-li-cammy","Chun-Li et Cammy"],
+            ["jinx-vi","Jinx et Vi"],
+            ["lune-sciel","Lune et Sciel"],
+            ["meryl-sniper-wolf","Meryl Silverburgh et Sniper Wolf"],
+            ["nathan-chloe","Nathan Drake et Chloe Frazer"]
+        ].map(([id,label]) => ({
+            id,
+            label,
+            image:
+                `/cards/Bouton Catalogue Game - ${label}.webp`
+        }))
+    }
+};
+
+let sidebarPromoState = {
+    mode: "",
+    licence: ""
+};
 
 let waifuMode = false;
 
@@ -139,6 +238,926 @@ function getLicenceActivationDateIndex(){
             normalizeHeaderName(header)
         )
     );
+}
+
+function getLicenceUniverseIndex(){
+
+    const acceptedHeaders =
+        new Set([
+            "univers",
+            "universe",
+            "media",
+            "categorie",
+            "category",
+            "typecontenu",
+            "typelicence",
+            "licencekind",
+            "kind",
+            "animegame",
+            "animeougame"
+        ]);
+
+    return animeHeaders.findIndex(header =>{
+
+        const normalized =
+            normalizeHeaderName(header);
+
+        return acceptedHeaders.has(normalized) ||
+            normalized.startsWith("univers") ||
+            normalized.startsWith("universe");
+    });
+}
+
+function getLicenceGroupColumnIndex(){
+
+    const acceptedHeaders =
+        new Set([
+            "groupe",
+            "grouplique",
+            "licencegroupe",
+            "licencegroup",
+            "groupelicence",
+            "groupelicences",
+            "licenceparente",
+            "parentlicence",
+            "universgroupe"
+        ]);
+
+    const headerIndex =
+        animeHeaders.findIndex(header =>
+            acceptedHeaders.has(
+                normalizeHeaderName(header)
+            )
+        );
+
+    return headerIndex >= 0
+        ? headerIndex
+        : 3;
+}
+
+function normalizeLicenceUniverse(value){
+
+    const normalized =
+        normalizeLicenceKey(value);
+
+    if(
+        normalized === "game" ||
+        normalized === "games" ||
+        normalized === "jeu" ||
+        normalized === "jeux" ||
+        normalized === "jeuvideo" ||
+        normalized === "jeuxvideo" ||
+        normalized === "videogame" ||
+        normalized === "videogames"
+    ){
+        return "game";
+    }
+
+    return "anime";
+}
+
+function getLicenceUniverses(rowOrLicence){
+
+    const row =
+        Array.isArray(rowOrLicence)
+            ? rowOrLicence
+            : getLicenceRow(rowOrLicence);
+
+    if(!row){
+        return ["anime"];
+    }
+
+    const universeIndex =
+        getLicenceUniverseIndex();
+
+    if(universeIndex < 0){
+        return ["anime"];
+    }
+
+    const universes =
+        splitMultiValues(row[universeIndex])
+            .map(normalizeLicenceUniverse);
+
+    return universes.length
+        ? [...new Set(universes)]
+        : ["anime"];
+}
+
+function isLicenceInCurrentUniverse(licenceOrRow){
+
+    return getLicenceUniverses(licenceOrRow)
+        .includes(licenceUniverseMode);
+}
+
+function loadLicenceUniverseMode(){
+
+    const stored =
+        localStorage.getItem(
+            LICENCE_UNIVERSE_STORAGE_KEY
+        );
+
+    licenceUniverseMode =
+        stored === "game"
+            ? "game"
+            : "anime";
+}
+
+function saveLicenceUniverseMode(){
+
+    localStorage.setItem(
+        LICENCE_UNIVERSE_STORAGE_KEY,
+        licenceUniverseMode
+    );
+}
+
+function ensureUniverseSwitch(){
+
+    if(document.getElementById("universeSwitch")){
+        updateUniverseSwitch();
+        return;
+    }
+
+    const switcher =
+        document.createElement("div");
+
+    switcher.id = "universeSwitch";
+    switcher.className = "universe-switch";
+    switcher.setAttribute("role","group");
+    switcher.setAttribute(
+        "aria-label",
+        "Choisir le type de licences"
+    );
+
+    switcher.innerHTML = `
+        <button
+            type="button"
+            class="universe-switch-option"
+            data-universe="anime"
+            onclick="setLicenceUniverseMode('anime')"
+        >
+            Animes / Mangas
+        </button>
+        <button
+            type="button"
+            class="universe-switch-option"
+            data-universe="game"
+            onclick="setLicenceUniverseMode('game')"
+        >
+            Jeux Vid&eacute;o
+        </button>
+    `;
+
+    const headerLeft =
+        document.querySelector(".main-header-left");
+
+    const catalogueButton =
+        document.querySelector(
+            ".main-header-left .top-icon-button:nth-of-type(2)"
+        );
+
+    const header =
+        document.querySelector(".main-header");
+
+    if(headerLeft && catalogueButton){
+        catalogueButton.insertAdjacentElement(
+            "afterend",
+            switcher
+        );
+    } else if(headerLeft){
+        headerLeft.insertAdjacentElement(
+            "afterbegin",
+            switcher
+        );
+    } else if(header){
+        header.insertAdjacentElement(
+            "afterbegin",
+            switcher
+        );
+    } else {
+        document.body.prepend(switcher);
+    }
+
+    updateUniverseSwitch();
+}
+
+function placeUniverseSwitchForViewport(){
+
+    const switcher =
+        document.getElementById("universeSwitch");
+
+    if(!switcher){
+        return;
+    }
+
+    const titleWrapper =
+        document.querySelector(".main-title-wrapper");
+
+    const headerLeft =
+        document.querySelector(".main-header-left");
+
+    const catalogueButton =
+        document.querySelector(
+            ".main-header-left .top-icon-button:nth-of-type(2)"
+        );
+
+    if(
+        window.matchMedia("(max-width:768px)").matches &&
+        titleWrapper
+    ){
+        titleWrapper.insertAdjacentElement(
+            "afterend",
+            switcher
+        );
+
+        return;
+    }
+
+    if(catalogueButton){
+        catalogueButton.insertAdjacentElement(
+            "afterend",
+            switcher
+        );
+    } else if(headerLeft){
+        headerLeft.insertAdjacentElement(
+            "afterbegin",
+            switcher
+        );
+    }
+}
+
+function placeFavoritesButtonForViewport(){
+
+    const favoritesButton =
+        document.querySelector(".favorites-toggle");
+
+    const waifuButton =
+        document.getElementById("waifuButton");
+
+    const headerLeft =
+        document.querySelector(".main-header-left");
+
+    const title =
+        document.querySelector(".main-title-wrapper .main-title");
+
+    if(
+        window.matchMedia("(max-width:768px)").matches &&
+        headerLeft
+    ){
+        if(waifuButton){
+            headerLeft.appendChild(waifuButton);
+        }
+
+        if(favoritesButton){
+            headerLeft.appendChild(favoritesButton);
+        }
+
+        return;
+    }
+
+    if(title){
+        if(waifuButton){
+            title.insertAdjacentElement(
+                "afterend",
+                waifuButton
+            );
+        }
+
+        if(favoritesButton){
+            (
+                waifuButton || title
+            ).insertAdjacentElement(
+                "afterend",
+                favoritesButton
+            );
+        }
+    }
+}
+
+function updateUniverseSwitch(){
+
+    document
+        .querySelectorAll(
+            ".universe-switch-option"
+        )
+        .forEach(button =>{
+
+            const active =
+                button.dataset.universe ===
+                licenceUniverseMode;
+
+            button.classList.toggle(
+                "active",
+                active
+            );
+
+            button.setAttribute(
+                "aria-pressed",
+                active ? "true" : "false"
+            );
+        });
+
+    updateUniverseHero();
+}
+
+function updateUniverseHero(){
+
+    const heroBackground =
+        document.querySelector(".hero-background");
+
+    const heroOverlay =
+        document.querySelector(".hero-overlay");
+
+    const isGameUniverse =
+        licenceUniverseMode === "game";
+
+    if(heroBackground){
+        heroBackground.style.backgroundImage =
+            isGameUniverse
+                ? 'url("/bandeau_game_fond.webp")'
+                : 'url("/bandeau_anime_fond.webp")';
+    }
+
+    if(heroOverlay){
+        heroOverlay.src =
+            isGameUniverse
+                ? "/bandeau_game_calque.webp"
+                : "/bandeau_anime_calque.webp";
+
+        heroOverlay.alt =
+            isGameUniverse
+                ? "Bandeau Kadotaku Jeux Vid\u00e9o"
+                : "Bandeau Kadotaku Animes et Mangas";
+    }
+
+    applyHeroDisplayMode();
+    checkHeroFullNoTitleAvailability();
+    updateSiteThemeFromHero();
+}
+
+function getCurrentHeroThemePath(){
+    return licenceUniverseMode === "game"
+        ? "/bandeau_game_fond.webp"
+        : "/bandeau_anime_fond.webp";
+}
+
+function setSiteThemeColors(colors){
+    const root =
+        document.documentElement;
+
+    root.style.setProperty(
+        "--site-bg",
+        colors.bg
+    );
+
+    root.style.setProperty(
+        "--site-bg-soft",
+        colors.soft
+    );
+
+    root.style.setProperty(
+        "--site-bg-panel",
+        colors.panel
+    );
+}
+
+function clampColor(value){
+    return Math.max(
+        0,
+        Math.min(
+            255,
+            Math.round(value)
+        )
+    );
+}
+
+function colorToRgb(color){
+    return `rgb(${color.r}, ${color.g}, ${color.b})`;
+}
+
+function makeThemeFromAverageColor(color){
+    const bg = {
+        r: clampColor(color.r * 0.28),
+        g: clampColor(color.g * 0.28),
+        b: clampColor(color.b * 0.36)
+    };
+
+    const soft = {
+        r: clampColor(bg.r + 8),
+        g: clampColor(bg.g + 10),
+        b: clampColor(bg.b + 14)
+    };
+
+    const panel = {
+        r: clampColor(bg.r + 18),
+        g: clampColor(bg.g + 22),
+        b: clampColor(bg.b + 30)
+    };
+
+    return {
+        bg: colorToRgb(bg),
+        soft: colorToRgb(soft),
+        panel: colorToRgb(panel)
+    };
+}
+
+function updateSiteThemeFromHero(){
+    const imagePath =
+        getCurrentHeroThemePath();
+
+    if(HERO_THEME_CACHE.has(imagePath)){
+        setSiteThemeColors(
+            HERO_THEME_CACHE.get(imagePath)
+        );
+        return;
+    }
+
+    const image =
+        new Image();
+
+    image.crossOrigin = "anonymous";
+
+    image.onload = () =>{
+        try{
+            const canvas =
+                document.createElement("canvas");
+            const context =
+                canvas.getContext("2d",{
+                    willReadFrequently:true
+                });
+
+            if(!context){
+                return;
+            }
+
+            canvas.width = 96;
+            canvas.height = 32;
+
+            context.drawImage(
+                image,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+            const pixels =
+                context.getImageData(
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                ).data;
+
+            let totalWeight = 0;
+            let red = 0;
+            let green = 0;
+            let blue = 0;
+
+            for(
+                let index = 0;
+                index < pixels.length;
+                index += 4
+            ){
+                const r = pixels[index];
+                const g = pixels[index + 1];
+                const b = pixels[index + 2];
+                const alpha = pixels[index + 3] / 255;
+                const brightness =
+                    (r + g + b) / 3;
+
+                if(alpha < 0.5 || brightness > 235){
+                    continue;
+                }
+
+                const weight =
+                    alpha *
+                    (
+                        brightness < 35
+                            ? 0.35
+                            : 1
+                    );
+
+                red += r * weight;
+                green += g * weight;
+                blue += b * weight;
+                totalWeight += weight;
+            }
+
+            if(!totalWeight){
+                return;
+            }
+
+            const theme =
+                makeThemeFromAverageColor({
+                    r:red / totalWeight,
+                    g:green / totalWeight,
+                    b:blue / totalWeight
+                });
+
+            HERO_THEME_CACHE.set(
+                imagePath,
+                theme
+            );
+
+            setSiteThemeColors(theme);
+        } catch(error){
+            console.warn(
+                "Theme bandeau indisponible",
+                error
+            );
+        }
+    };
+
+    image.src = imagePath;
+}
+
+function ensureHeroDisplayControls(){
+
+    const hero =
+        document.querySelector(".hero");
+
+    if(!hero){
+        return;
+    }
+
+    let fullImage =
+        hero.querySelector(".hero-full-image");
+
+    if(!fullImage){
+        fullImage = document.createElement("img");
+        fullImage.className = "hero-full-image";
+        fullImage.alt =
+            "Bandeau Kadotaku Jeux Vid\u00e9o complet";
+        fullImage.loading = "eager";
+        fullImage.decoding = "async";
+        fullImage.addEventListener("click",event =>{
+            if(heroDisplayMode !== "full"){
+                return;
+            }
+
+            event.stopPropagation();
+            openModal(
+                getHeroFullImagePath(),
+                true
+            );
+        });
+        hero.appendChild(fullImage);
+    }
+
+    let controls =
+        hero.querySelector(".hero-display-controls");
+
+    if(!controls){
+        controls = document.createElement("div");
+        controls.className = "hero-display-controls";
+        controls.innerHTML = `
+            <button
+                type="button"
+                class="hero-display-button hero-display-up"
+                aria-label="R&eacute;duire le bandeau"
+                title="R&eacute;duire le bandeau"
+            >&#8593;</button>
+            <button
+                type="button"
+                class="hero-display-button hero-display-down"
+                aria-label="Agrandir le bandeau"
+                title="Agrandir le bandeau"
+            >&#8595;</button>
+            <button
+                type="button"
+                class="hero-display-button hero-display-title-toggle"
+                aria-label="Afficher la version sans titre"
+                title="Afficher la version sans titre"
+            ></button>
+        `;
+
+        controls.addEventListener("click",event =>{
+            event.stopPropagation();
+
+            if(
+                event.target.closest(
+                    ".hero-display-title-toggle"
+                )
+            ){
+                toggleHeroFullTitle();
+            } else if(
+                event.target.closest(
+                    ".hero-display-up"
+                )
+            ){
+                stepHeroDisplayMode(-1);
+            } else if(
+                event.target.closest(
+                    ".hero-display-down"
+                )
+            ){
+                stepHeroDisplayMode(1);
+            }
+        });
+
+        hero.appendChild(controls);
+    }
+
+    checkHeroFullNoTitleAvailability();
+    applyHeroDisplayMode();
+}
+
+function getHeroFullImageNoTitlePath(){
+
+    return licenceUniverseMode === "game"
+        ? HERO_GAME_FULL_IMAGE_NO_TITLE
+        : HERO_ANIME_FULL_IMAGE_NO_TITLE;
+}
+
+function checkHeroFullNoTitleAvailability(){
+
+    const universe = licenceUniverseMode;
+    const path = getHeroFullImageNoTitlePath();
+    const token = ++heroFullNoTitleCheckToken;
+    const probe = new Image();
+
+    heroFullNoTitleAvailable =
+        universe === "anime";
+    applyHeroDisplayMode();
+
+    probe.onload = () =>{
+        if(
+            token !== heroFullNoTitleCheckToken ||
+            universe !== licenceUniverseMode
+        ){
+            return;
+        }
+
+        heroFullNoTitleAvailable = true;
+        applyHeroDisplayMode();
+    };
+
+    probe.onerror = () =>{
+        if(
+            token !== heroFullNoTitleCheckToken ||
+            universe !== licenceUniverseMode
+        ){
+            return;
+        }
+
+        heroFullNoTitleAvailable = false;
+        heroFullTitleVisible[universe] = true;
+        applyHeroDisplayMode();
+    };
+
+    probe.src = path;
+}
+
+function toggleHeroFullTitle(){
+
+    if(
+        heroDisplayMode !== "full" ||
+        !heroFullNoTitleAvailable
+    ){
+        return;
+    }
+
+    heroFullTitleVisible[licenceUniverseMode] =
+        !heroFullTitleVisible[licenceUniverseMode];
+
+    applyHeroDisplayMode();
+}
+
+function getHeroTitleToggleIcon(titleIsVisible){
+
+    if(titleIsVisible){
+        return `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                <circle cx="12" cy="12" r="2.8"></circle>
+            </svg>
+        `;
+    }
+
+    return `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 3l18 18"></path>
+            <path d="M10.6 6.1A10 10 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.2 2.8"></path>
+            <path d="M6.2 6.2C3.9 8 2.5 12 2.5 12s3.5 6 9.5 6c1.4 0 2.7-.3 3.8-.8"></path>
+        </svg>
+    `;
+}
+
+function stepHeroDisplayMode(direction){
+
+    const modes =
+        ["hidden","banner","full"];
+
+    const currentIndex =
+        Math.max(
+            0,
+            modes.indexOf(heroDisplayMode)
+        );
+
+    const nextIndex =
+        Math.max(
+            0,
+            Math.min(
+                modes.length - 1,
+                currentIndex + direction
+            )
+        );
+
+    heroDisplayMode = modes[nextIndex];
+
+    localStorage.setItem(
+        HERO_DISPLAY_MODE_STORAGE_KEY,
+        heroDisplayMode
+    );
+
+    applyHeroDisplayMode();
+}
+
+function applyHeroDisplayMode(){
+
+    const hero =
+        document.querySelector(".hero");
+
+    const spacer =
+        document.querySelector(".hero-spacer");
+
+    if(!hero){
+        return;
+    }
+
+    document.body.classList.remove(
+        "hero-mode-hidden",
+        "hero-mode-banner",
+        "hero-mode-full"
+    );
+
+    document.body.classList.add(
+        `hero-mode-${heroDisplayMode}`
+    );
+
+    hero.dataset.displayMode =
+        heroDisplayMode;
+
+    if(spacer){
+        spacer.dataset.displayMode =
+            heroDisplayMode;
+    }
+
+    const fullImage =
+        hero.querySelector(".hero-full-image");
+
+    if(fullImage){
+        fullImage.src =
+            getHeroFullImagePath();
+
+        fullImage.alt =
+            licenceUniverseMode === "game"
+                ? "Bandeau Kadotaku Jeux Vid\u00e9o complet"
+                : "Bandeau Kadotaku Animes et Mangas complet";
+    }
+
+    const upButton =
+        hero.querySelector(".hero-display-up");
+
+    const downButton =
+        hero.querySelector(".hero-display-down");
+
+    const titleToggleButton =
+        hero.querySelector(
+            ".hero-display-title-toggle"
+        );
+
+    if(upButton){
+        upButton.hidden =
+            heroDisplayMode === "hidden";
+    }
+
+    if(downButton){
+        downButton.hidden =
+            heroDisplayMode === "full";
+    }
+
+    if(titleToggleButton){
+        const titleIsVisible =
+            heroFullTitleVisible[
+                licenceUniverseMode
+            ];
+
+        titleToggleButton.hidden =
+            heroDisplayMode !== "full" ||
+            !heroFullNoTitleAvailable;
+
+        titleToggleButton.innerHTML =
+            getHeroTitleToggleIcon(
+                titleIsVisible
+            );
+
+        const label = titleIsVisible
+            ? "Afficher la version sans titre"
+            : "Afficher la version avec titre";
+
+        titleToggleButton.setAttribute(
+            "aria-label",
+            label
+        );
+
+        titleToggleButton.setAttribute(
+            "title",
+            label
+        );
+
+        titleToggleButton.setAttribute(
+            "aria-pressed",
+            titleIsVisible ? "false" : "true"
+        );
+    }
+}
+
+function getHeroFullImagePath(){
+
+    if(
+        heroFullNoTitleAvailable &&
+        !heroFullTitleVisible[licenceUniverseMode]
+    ){
+        return getHeroFullImageNoTitlePath();
+    }
+
+    return licenceUniverseMode === "game"
+        ? HERO_GAME_FULL_IMAGE
+        : HERO_ANIME_FULL_IMAGE;
+}
+
+function setLicenceUniverseMode(mode){
+
+    const nextMode =
+        mode === "game"
+            ? "game"
+            : "anime";
+
+    if(nextMode === licenceUniverseMode){
+        return;
+    }
+
+    licenceUniverseMode = nextMode;
+    saveLicenceUniverseMode();
+    updateUniverseSwitch();
+
+    if(
+        sidebarPromoState.mode === "home" ||
+        sidebarPromoState.mode === "catalogue"
+    ){
+        updateSidebarPromoCard(
+            sidebarPromoState.mode
+        );
+    }
+
+    resetAllFiltersForTopDropdown();
+    clearMainFilters();
+
+    routeLicenceFilter = "";
+    quickTopType = "";
+
+    rebuildVisibleLicenceList();
+
+    refreshAllTypes();
+
+    menusBuilt = false;
+    topMenusPinnedLicenceKey = "";
+
+    buildLicenceCards();
+
+    if(productsLoaded){
+        buildSidebar();
+        buildTopMenus();
+        menusBuilt = true;
+
+        if(isHomeRoute()){
+
+            handleLicenceRoute();
+
+        } else {
+
+            startSearch();
+        }
+    }
+}
+
+function licenceFavoritesEnabled(){
+
+    return licenceUniverseMode === "anime";
+}
+
+function rebuildVisibleLicenceList(){
+
+    allAnime = animeData
+        .filter(r =>
+            isLicenceInCurrentUniverse(r) &&
+            (
+                showAllLicencesSecretMode ||
+                r[2] == "1"
+            )
+        )
+        .map(r => r[0]);
 }
 
 function parseLicenceActivationDate(value){
@@ -472,6 +1491,10 @@ function toggleWaifuMode(){
 } else {
 
     button.classList.remove('active');
+
+    setTimeout(()=>{
+        button.textContent = 'Mode Waifu';
+    },0);
 }
 
 button.textContent =
@@ -541,12 +1564,15 @@ function updateFavoritesButton(){
         favoritesMode
     );
 
+    const heart =
+        `<span class="favorites-toggle-heart">&#10084;</span>`;
+
     button.innerHTML =
         favorites.length > 0
 
-        ? `❤️ Favoris (${favorites.length})`
+        ? `${heart} Favoris (${favorites.length})`
 
-        : `❤️ Favoris`;
+        : `${heart} Favoris`;
 }
 
 /* CSV */
@@ -791,12 +1817,20 @@ function rebuildAnimeIndexes(){
 
     licenceGroupsFromSheet = new Map();
 
+    const groupColumnIndex =
+        getLicenceGroupColumnIndex();
+
     animeData
-        .filter(row => row[0] && row[3])
+        .filter(row =>
+            row[0] &&
+            row[groupColumnIndex]
+        )
         .forEach(row =>{
 
             const groupKey =
-                normalizeLicenceKey(row[3]);
+                normalizeLicenceKey(
+                    row[groupColumnIndex]
+                );
 
             if(!groupKey){
                 return;
@@ -926,6 +1960,7 @@ function isLicenceVisible(licence){
 
     return Boolean(
         row &&
+        isLicenceInCurrentUniverse(row) &&
         (
             showAllLicencesSecretMode ||
             String(row[2] || "").trim() === "1"
@@ -962,12 +1997,16 @@ function getLicenceAliases(row){
     const activationDateIndex =
         getLicenceActivationDateIndex();
 
+    const universeIndex =
+        getLicenceUniverseIndex();
+
     return [
         row[0],
         ...row
             .slice(3)
             .filter((value,index) =>
-                index + 3 !== activationDateIndex
+                index + 3 !== activationDateIndex &&
+                index + 3 !== universeIndex
             )
             .flatMap(splitMultiValues)
     ].filter(Boolean);
@@ -1001,6 +2040,7 @@ function getRecentActiveLicences(){
     return animeData
         .filter(row =>
             row[0] &&
+            isLicenceInCurrentUniverse(row) &&
             String(row[2] || "").trim() === "1"
         )
         .map(row => ({
@@ -1064,7 +2104,17 @@ function showNewLicencesModal(){
 
     modal.innerHTML = `
         <div class="new-licences-dialog">
-            <h2>Nouvelles licences ajoutées</h2>
+            <div class="new-licences-title-row">
+                <h2>Nouvelles licences ajoutées</h2>
+
+                <label class="new-licences-dismiss-all">
+                    <input
+                        type="checkbox"
+                        onchange="toggleAllNewLicenceDismissals(this.checked)"
+                    >
+                    Tout cocher "Ne plus afficher"
+                </label>
+            </div>
 
             <div class="new-licences-grid">
                 ${recentLicences.map(item => `
@@ -1122,6 +2172,26 @@ function showNewLicencesModal(){
     modal.style.display = "flex";
 }
 
+function toggleAllNewLicenceDismissals(checked){
+
+    const modal =
+        document.getElementById(
+            "newLicencesModal"
+        );
+
+    if(!modal){
+        return;
+    }
+
+    modal
+        .querySelectorAll(
+            ".new-licence-dismiss input[type='checkbox']"
+        )
+        .forEach(input =>{
+            input.checked = checked;
+        });
+}
+
 function closeNewLicencesModal(){
 
     const modal =
@@ -1136,9 +2206,11 @@ function closeNewLicencesModal(){
     const checkedLicences =
         [
             ...modal.querySelectorAll(
-                "input[type='checkbox']:checked"
+                ".new-licence-dismiss input[type='checkbox']:checked"
             )
-        ].map(input => input.value);
+        ]
+            .map(input => input.value)
+            .filter(Boolean);
 
     if(checkedLicences.length){
 
@@ -1162,6 +2234,7 @@ function findLicenceFromSearch(query){
 
     const row =
         animeData.find(r =>
+            isLicenceInCurrentUniverse(r) &&
             getLicenceAliases(r)
                 .some(alias =>
                     normalizeLicenceKey(alias) === queryKey
@@ -1437,7 +2510,7 @@ function buildMenusAfterFirstProductPaint(){
                 handleLicenceRoute();
 
                 showAmazonDisclosure();
-                
+
                 updateFavoritesButton();
 
                 console.timeEnd("MENUS");
@@ -1484,11 +2557,16 @@ async function loadData(){
     animeData =
         parsedAnimeData;
 
+    loadLicenceUniverseMode();
+
     rebuildAnimeIndexes();
 
-    allAnime = animeData
-    .filter(r => showAllLicencesSecretMode || r[2] == "1")
-    .map(r => r[0]);
+    rebuildVisibleLicenceList();
+
+    ensureUniverseSwitch();
+    placeUniverseSwitchForViewport();
+
+    placeFavoritesButtonForViewport();
 
     console.time("HOME_RENDER");
 
@@ -1992,12 +3070,13 @@ function buildLicenceCards(){
 
         .filter(r =>
             r[0] &&
+            isLicenceInCurrentUniverse(r) &&
             (
                 showAllLicencesSecretMode ||
                 r[2] == "1"
             )
         );
-    
+
     const sortedLicenceRows =
         [...licenceRows]
             .sort((a,b)=>
@@ -2008,15 +3087,20 @@ function buildLicenceCards(){
                 )
             );
 
+    const showLicenceFavorites =
+        licenceFavoritesEnabled();
+
     const licences =
         sortedLicenceRows
             .filter(r =>
+                !showLicenceFavorites ||
                 !(Number(r[1]) >= 1)
             )
             .map(r => r[0]);
 
     const featuredLicences =
-        licenceRows
+        showLicenceFavorites
+            ? licenceRows
             .filter(r =>{
 
                 const fav =
@@ -2042,7 +3126,8 @@ function buildLicenceCards(){
                     {sensitivity:'base'}
                 );
             })
-            .map(r => r[0]);
+            .map(r => r[0])
+            : [];
 
     const availableLicenceByKey =
         new Map(
@@ -2053,13 +3138,15 @@ function buildLicenceCards(){
         );
 
     const userFeaturedLicences =
-        userLicenceFavorites
+        showLicenceFavorites
+            ? userLicenceFavorites
             .map(licence =>
                 availableLicenceByKey.get(
                     normalizeLicenceKey(licence)
                 )
             )
-            .filter(Boolean);
+            .filter(Boolean)
+            : [];
 
     const buildCardHTML = (
         licence,
@@ -2107,7 +3194,7 @@ function buildLicenceCards(){
                     data-image="${encodeURIComponent(`/cards/Card ${licence}.webp`)}"
                     onclick="return expandLicenceCard(event,this);"
                 >
-                    🔍
+                    &#128269;
                 </span>
 
             </a>
@@ -2159,7 +3246,7 @@ function buildLicenceCards(){
                     licence,
                     start + index,
                     "",
-                    true
+                    showLicenceFavorites
                 )
             )
             .join("");
@@ -2322,6 +3409,7 @@ function buildTopMenus(){
     animeData
         .filter(row =>
             row[0] &&
+            isLicenceInCurrentUniverse(row) &&
             (showAllLicencesSecretMode || row[2] == "1") &&
             getLicenceGroup(row[0]).length
         )
@@ -2684,6 +3772,7 @@ function getSortedLicences(){
     animeData
         .filter(row =>
             row[0] &&
+            isLicenceInCurrentUniverse(row) &&
             (
                 showAllLicencesSecretMode ||
                 row[2] == "1"
@@ -2695,7 +3784,9 @@ function getSortedLicences(){
                 row[0],
                 {
                     name:row[0],
-                    priority:Number(row[1]) || 999999
+                    priority:licenceFavoritesEnabled()
+                        ? Number(row[1]) || 999999
+                        : 999999
                 }
             );
 
@@ -2726,6 +3817,7 @@ function getSortedLicences(){
 
 const priority =
 
+    licenceFavoritesEnabled() &&
     animeRow &&
     animeRow[1]
 
@@ -2801,7 +3893,7 @@ function normalizeText(text){
 
         .replace(/[\u0300-\u036f]/g,"")
 
-        .replace(/[’']/g,"'")
+        .replace(/[â€™']/g,"'")
 
         .trim()
 
@@ -2843,15 +3935,15 @@ function ensureSortOptions(){
     }
 
     const expectedOptions = [
-        ["random","Aléatoire"],
+        ["random","Al&eacute;atoire"],
         ["price-asc","Prix croissant"],
-        ["price-desc","Prix décroissant"],
-        ["licence-asc","Licence A → Z"],
-        ["licence-desc","Licence Z → A"],
-        ["type-asc","Type A → Z"],
-        ["type-desc","Type Z → A"],
-        ["perso-asc","Personnage A → Z"],
-        ["perso-desc","Personnage Z → A"]
+        ["price-desc","Prix d&eacute;croissant"],
+        ["licence-asc","Licence A &rarr; Z"],
+        ["licence-desc","Licence Z &rarr; A"],
+        ["type-asc","Type A &rarr; Z"],
+        ["type-desc","Type Z &rarr; A"],
+        ["perso-asc","Personnage A &rarr; Z"],
+        ["perso-desc","Personnage Z &rarr; A"]
     ];
 
     const currentValue =
@@ -2940,36 +4032,50 @@ function syncDefaultSortForContext(){
 
 /* QUICK FILTERS */
 
-function clearMainFilters(){
+const SEARCH_INPUT_DELAY = 250;
+let searchInputTimer = null;
+
+function cancelPendingSearchInput(){
+
+    if(searchInputTimer !== null){
+        clearTimeout(searchInputTimer);
+        searchInputTimer = null;
+    }
+}
+
+function clearMainFilters({ preserveSearch = false } = {}){
 
     document
         .querySelectorAll(
-            '#typeList input'
+            '#typeList input:checked'
         )
         .forEach(i => i.checked = false);
 
     document
         .querySelectorAll(
-            '.licence-checkbox'
+            '.perso-checkbox:checked'
+        )
+        .forEach(i => i.checked = false);
+
+    document
+        .querySelectorAll(
+            '.licence-checkbox:checked'
         )
         .forEach(i => {
-
             i.checked = false;
-
             togglePersos(i);
         });
 
-    document
-        .querySelectorAll(
-            '.perso-checkbox'
-        )
-        .forEach(i => i.checked = false);
+    if(!preserveSearch){
+        cancelPendingSearchInput();
 
-    document
-        .getElementById(
-            'searchInput'
-        )
-        .value = "";
+        const searchInput =
+            document.getElementById('searchInput');
+
+        if(searchInput){
+            searchInput.value = "";
+        }
+    }
 
     quickTopType = "";
 }
@@ -2990,6 +4096,9 @@ function resetAllFiltersForTopDropdown(){
         button.textContent = 'Mode Waifu';
     }
 
+    button.textContent =
+        'Mode Waifu';
+
     quickBudgetCheckboxes.forEach(b=>{
 
         document.getElementById(
@@ -3001,6 +4110,10 @@ function resetAllFiltersForTopDropdown(){
     maxSlider.value = DEFAULT_MAX_PRICE;
 
     updatePriceDisplay();
+
+    if(button){
+        button.textContent = 'Mode Waifu';
+    }
 
     favoritesMode = false;
     updateFavoritesButton();
@@ -3041,7 +4154,7 @@ function clearAllFilters(){
     button.classList.remove('active');
 
     button.textContent =
-        'Mode Waifu Désactivé';
+        'Mode Waifu';
 
     quickBudgetCheckboxes.forEach(b=>{
 
@@ -3063,25 +4176,29 @@ function clearAllFilters(){
     startSearch();
 }
 
-function handleSearchInput(){
+function handleSearchInput(event){
 
-    const value =
-        document
-        .getElementById(
-            'searchInput'
-        )
-        .value
-        .trim();
+    if(event?.isComposing){
+        return;
+    }
 
-    clearMainFilters();
+    const searchInput =
+        event?.currentTarget ||
+        document.getElementById('searchInput');
 
-    document
-        .getElementById(
-            'searchInput'
-        )
-        .value = value;
+    if(!searchInput){
+        return;
+    }
 
-    startSearch();
+    // Ne jamais réécrire la valeur pendant la saisie : les claviers mobiles
+    // composent eux-mêmes le mot et rejoueraient sinon ses préfixes.
+    clearMainFilters({ preserveSearch: true });
+    cancelPendingSearchInput();
+
+    searchInputTimer = setTimeout(()=>{
+        searchInputTimer = null;
+        startSearch();
+    },SEARCH_INPUT_DELAY);
 }
 
 function quickType(type){
@@ -3130,7 +4247,7 @@ function quickLicence(licence){
 function quickPerso(licence,perso){
 
     resetAllFiltersForTopDropdown();
-    
+
     quickTopType = "";
 
     document
@@ -3189,6 +4306,35 @@ function updateActiveFilters(){
         displayedFilters.add(key);
 
         container.innerHTML += html;
+    }
+
+    const searchInput =
+        document.getElementById("searchInput");
+
+    const searchText =
+        searchInput
+            ? searchInput.value.trim()
+            : "";
+
+    if(searchText){
+
+        addFilterTag(
+            'search:' + searchText,
+            `
+                <div class="filter-tag">
+
+                    Recherche : ${escapeHtml(searchText)}
+
+                    <span
+                        class="filter-remove"
+                        onclick="removeFilter('search')"
+                    >
+                        &times;
+                    </span>
+
+                </div>
+            `
+        );
     }
 
     if(quickTopType){
@@ -3285,7 +4431,7 @@ function updateActiveFilters(){
                             )
                         "
                     >
-                        ✕
+                        &times;
                     </span>
 
                 </div>
@@ -3314,7 +4460,7 @@ function updateActiveFilters(){
                             )
                         "
                     >
-                        ✕
+                        &times;
                     </span>
 
                 </div>
@@ -3343,7 +4489,7 @@ function updateActiveFilters(){
                             )
                         "
                     >
-                        ✕
+                        &times;
                     </span>
 
                 </div>
@@ -3363,7 +4509,7 @@ if(activeQuickBudget){
         `
             <div class="filter-tag">
 
-                Moins de ${activeQuickBudget.value}€
+                Moins de ${activeQuickBudget.value}&euro;
 
                 <span
                     class="filter-remove"
@@ -3375,7 +4521,7 @@ if(activeQuickBudget){
                         startSearch();
                     "
                 >
-                    ✕
+                    &times;
                 </span>
 
             </div>
@@ -3392,7 +4538,7 @@ if(activeQuickBudget){
         `
             <div class="filter-tag">
 
-                Prix : ${minSlider.value}€ - ${maxSlider.value}€
+                Prix : ${minSlider.value}&euro; - ${maxSlider.value}&euro;
 
                 <span
                     class="filter-remove"
@@ -3403,7 +4549,7 @@ if(activeQuickBudget){
                         startSearch();
                     "
                 >
-                    ✕
+                    &times;
                 </span>
 
             </div>
@@ -3428,7 +4574,7 @@ if(favoritesMode){
                         startSearch();
                     "
                 >
-                    ✕
+                    &times;
                 </span>
 
             </div>
@@ -3449,7 +4595,7 @@ if(favoritesMode){
                         class="filter-remove"
                         onclick="toggleWaifuMode()"
                     >
-                        ✕
+                        &times;
                     </span>
 
                 </div>
@@ -3462,6 +4608,7 @@ if(favoritesMode){
         selectedLicences.length ||
         selectedPersos.length ||
         routeLicenceFilter ||
+        searchText ||
         quickTopType ||
         waifuMode ||
         favoritesMode ||
@@ -3477,14 +4624,14 @@ if(favoritesMode){
 
     document
         .querySelector(
-            '.main-title-wrapper'
+            '.main-header'
         )
         ?.classList.toggle(
             'has-active-filters',
             hasFilters
         );
 }
-    
+
 /* SEARCH */
 
 function switchHomeToCatalogueView(){
@@ -3691,7 +4838,7 @@ function startSearch(){
         ){
             return false;
         }
-        
+
 
         if(
             waifuMode &&
@@ -3753,7 +4900,7 @@ function startSearch(){
         ){
             return false;
         }
-        
+
         if(
             favoritesMode &&
             !isFavorite(p.url)
@@ -3860,6 +5007,16 @@ function startSearch(){
 }
 
 function removeFilter(type,value){
+
+    if(type === 'search'){
+
+        const searchInput =
+            document.getElementById("searchInput");
+
+        if(searchInput){
+            searchInput.value = "";
+        }
+    }
 
     if(type === 'quickType'){
 
@@ -4035,7 +5192,7 @@ function buildProductCardHTML(
                         toggleFavorite('${product.url}')
                     "
                 >
-                    ❤
+                    &#10084;
                 </button>
 
                 <img
@@ -4259,11 +5416,11 @@ function ensureModalNavigationControls(){
     previousButton.type = "button";
     previousButton.className =
         "modal-nav modal-nav-previous";
-    previousButton.textContent = "‹";
-    previousButton.title = "Article précédent";
+    previousButton.textContent = "\u2039";
+    previousButton.title = "Article pr\u00e9c\u00e9dent";
     previousButton.setAttribute(
         "aria-label",
-        "Article précédent"
+        "Article pr\u00e9c\u00e9dent"
     );
     previousButton.onclick = event =>{
         event.preventDefault();
@@ -4277,7 +5434,7 @@ function ensureModalNavigationControls(){
     nextButton.type = "button";
     nextButton.className =
         "modal-nav modal-nav-next";
-    nextButton.textContent = "›";
+    nextButton.textContent = "\u203A";
     nextButton.title = "Article suivant";
     nextButton.setAttribute(
         "aria-label",
@@ -4691,10 +5848,10 @@ function updatePriceDisplay(){
     }
 
     minValue.textContent =
-        minSlider.value + "€";
+        minSlider.value + "\u20ac";
 
     maxValue.textContent =
-        maxSlider.value + "€";
+        maxSlider.value + "\u20ac";
 }
 
 let priceSearchTimeout;
@@ -4703,7 +5860,7 @@ let isDraggingPriceHitArea = false;
 minSlider.addEventListener(
     "input",
     ()=>{
-        
+
         quickBudgetCheckboxes
     .forEach(b=>{
 
@@ -4711,7 +5868,7 @@ minSlider.addEventListener(
             .getElementById(b.id)
             .checked = false;
     });
-    
+
         updatePriceDisplay();
 
         clearTimeout(
@@ -4729,7 +5886,7 @@ minSlider.addEventListener(
 maxSlider.addEventListener(
     "input",
     ()=>{
-        
+
         quickBudgetCheckboxes
     .forEach(b=>{
 
@@ -4737,7 +5894,7 @@ maxSlider.addEventListener(
             .getElementById(b.id)
             .checked = false;
     });
-    
+
         updatePriceDisplay();
 
         clearTimeout(
@@ -4977,6 +6134,127 @@ sidebar.addEventListener('scroll',()=>{
     }
 });
 
+function getSidebarPromoStorageKey(mode){
+
+    return [
+        "kadotaku_sidebar_promo_variant",
+        licenceUniverseMode,
+        mode
+    ].join("_");
+}
+
+function getSidebarPromoChoices(mode,baseImage){
+
+    const variants =
+        SIDEBAR_PROMO_VARIANTS
+            [licenceUniverseMode]
+            ?.[mode] || [];
+
+    return [
+        {
+            id: "simple",
+            label: "Simple",
+            image: baseImage
+        },
+        ...variants
+    ];
+}
+
+function getSelectedSidebarPromoChoice(
+    mode,
+    baseImage
+){
+
+    const choices =
+        getSidebarPromoChoices(
+            mode,
+            baseImage
+        );
+
+    let stored = "";
+
+    try{
+        stored =
+            localStorage.getItem(
+                getSidebarPromoStorageKey(mode)
+            ) || "";
+    } catch(error){
+        stored = "";
+    }
+
+    return choices.find(choice =>
+        choice.id === stored
+    ) || choices[0];
+}
+
+function cycleSidebarPromoVariant(event,mode){
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const baseImage =
+        mode === "home"
+            ? (
+                licenceUniverseMode === "game"
+                    ? "/cards/Bouton Accueil Game.webp"
+                    : "/cards/Bouton Accueil Anime.webp"
+            )
+            : (
+                licenceUniverseMode === "game"
+                    ? "/cards/Bouton Catalogue Game.webp"
+                    : "/cards/Bouton Catalogue Anime.webp"
+            );
+
+    const choices =
+        getSidebarPromoChoices(
+            mode,
+            baseImage
+        );
+
+    if(choices.length < 3){
+        return false;
+    }
+
+    const selected =
+        getSelectedSidebarPromoChoice(
+            mode,
+            baseImage
+        );
+
+    const currentIndex =
+        Math.max(
+            0,
+            choices.findIndex(choice =>
+                choice.id === selected.id
+            )
+        );
+
+    const nextChoice =
+        choices[
+            (currentIndex + 1) %
+            choices.length
+        ];
+
+    try{
+        if(nextChoice.id === "simple"){
+            localStorage.removeItem(
+                getSidebarPromoStorageKey(mode)
+            );
+        } else {
+            localStorage.setItem(
+                getSidebarPromoStorageKey(mode),
+                nextChoice.id
+            );
+        }
+    } catch(error){
+        // The image still changes for this render even if storage is blocked.
+    }
+
+    updateSidebarPromoCard(mode);
+
+    return false;
+}
+
 function updateSidebarPromoCard(mode, licence = ""){
 
     const box =
@@ -4992,22 +6270,67 @@ function updateSidebarPromoCard(mode, licence = ""){
 
     let alt = "";
 
+    let baseImage = "";
+
+    let variants = [];
+
+    let selectedChoice = null;
+
+    sidebarPromoState = {
+        mode,
+        licence
+    };
+
     if(mode === "home"){
 
-        image =
-            "/cards/Bouton accueil.webp";
+        baseImage =
+            licenceUniverseMode === "game"
+                ? "/cards/Bouton Accueil Game.webp"
+                : "/cards/Bouton Accueil Anime.webp";
+
+        variants =
+            SIDEBAR_PROMO_VARIANTS
+                [licenceUniverseMode]
+                ?.home || [];
+
+        selectedChoice =
+            getSelectedSidebarPromoChoice(
+                mode,
+                baseImage
+            );
+
+        image = selectedChoice.image;
 
         alt =
-            "Accueil Kadotaku";
+            licenceUniverseMode === "game"
+                ? "Accueil Kadotaku Game"
+                : "Accueil Kadotaku";
     }
 
     else if(mode === "catalogue"){
 
-        image =
-            "/cards/Bouton catalogue.webp";
+        baseImage =
+            licenceUniverseMode === "game"
+                ? "/cards/Bouton Catalogue Game.webp"
+                : "/cards/Bouton Catalogue Anime.webp";
+
+        variants =
+            SIDEBAR_PROMO_VARIANTS
+                [licenceUniverseMode]
+                ?.catalogue || [];
+
+        selectedChoice =
+            getSelectedSidebarPromoChoice(
+                mode,
+                baseImage
+            );
+
+        image = selectedChoice.image;
 
         alt =
-            "Catalogue Kadotaku";
+            licenceUniverseMode === "game"
+                ? "Catalogue Kadotaku Game"
+                : "Catalogue Kadotaku Anime";
     }
 
     else if(
@@ -5046,6 +6369,31 @@ function updateSidebarPromoCard(mode, licence = ""){
                 alt="${alt}"
             >
 
+            ${
+                variants.length >= 2
+                    ? `
+                        <span
+                            class="sidebar-promo-cycle"
+                            title="Card actuelle : ${escapeAttr(
+                                selectedChoice?.label ||
+                                "Simple"
+                            )} — afficher la suivante"
+                            onclick="return cycleSidebarPromoVariant(event,'${mode}');"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path d="M20 7v5h-5"></path>
+                                <path d="M4 17v-5h5"></path>
+                                <path d="M6.1 9A7 7 0 0 1 18 6l2 1"></path>
+                                <path d="M17.9 15A7 7 0 0 1 6 18l-2-1"></path>
+                            </svg>
+                        </span>
+                    `
+                    : ""
+            }
+
             <span
                 class="sidebar-promo-expand"
 
@@ -5059,7 +6407,7 @@ function updateSidebarPromoCard(mode, licence = ""){
                     return false;
                 "
             >
-                🔍
+                &#128269;
             </span>
 
         </div>
@@ -5651,6 +6999,10 @@ document.addEventListener(
 );
 
 document.addEventListener("DOMContentLoaded", function () {
+    placeFavoritesButtonForViewport();
+
+    ensureHeroDisplayControls();
+
     const hero = document.querySelector(".hero");
 
     if (!hero) return;
@@ -5669,9 +7021,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             showAllLicencesSecretMode = !showAllLicencesSecretMode;
 
-            allAnime = animeData
-                .filter(r => showAllLicencesSecretMode || r[2] == "1")
-                .map(r => r[0]);
+            rebuildVisibleLicenceList();
 
             refreshAllTypes();
 
@@ -5697,9 +7047,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
             alert(
                 showAllLicencesSecretMode
-                    ? "Mode secret activé : toutes les licences sont visibles."
-                    : "Mode secret désactivé : seules les licences actives sont visibles."
+                    ? "Mode secret activ\u00e9 : toutes les licences sont visibles."
+                    : "Mode secret d\u00e9sactiv\u00e9 : seules les licences actives sont visibles."
             );
         }
     });
+});
+
+let favoritesPlacementResizeTimer = null;
+
+window.addEventListener("resize", ()=>{
+
+    clearTimeout(favoritesPlacementResizeTimer);
+
+    favoritesPlacementResizeTimer =
+        setTimeout(()=>{
+
+            placeUniverseSwitchForViewport();
+            placeFavoritesButtonForViewport();
+
+        },120);
 });

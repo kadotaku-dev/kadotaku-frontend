@@ -83,10 +83,6 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
-function escapeXml(value) {
-  return escapeHtml(value).replace(/'/g, "&apos;");
-}
-
 function slugLicence(licence) {
   return String(licence || "")
     .trim()
@@ -620,7 +616,7 @@ const sitemap = [
   "  </url>",
   ...sitemapLicences.flatMap((licence) => [
     "  <url>",
-    `    <loc>${escapeXml(licenceUrl(licence))}</loc>`,
+    `    <loc>${licenceUrl(licence)}</loc>`,
     "  </url>",
   ]),
   "</urlset>",
