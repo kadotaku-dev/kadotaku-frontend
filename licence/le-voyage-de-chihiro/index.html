@@ -7,7 +7,7 @@
 
 <meta property="og:site_name" content="Kadotaku">
 <meta property="og:title" content="Cadeaux Le Voyage de Chihiro | Figurines, goodies et idées cadeaux - Kadotaku">
-<meta property="og:description" content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de Chihiro (Sen), Sans-Visage, Haku, Chihiro et Yubaba : papercrafts, figurines, lampes, goodies et produits dérivés pour fans d'anime et de manga.">
+<meta property="og:description" content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de Chihiro (Sen), Sans-Visage, Haku, Chihiro et Yubaba : papercrafts, lampes, figurines, goodies et produits dérivés pour fans d'anime et de manga.">
 <meta property="og:url" content="https://www.kadotaku.fr/licence/le-voyage-de-chihiro">
 
 <title>
@@ -17,7 +17,7 @@ Cadeaux Le Voyage de Chihiro | Figurines, goodies et idées cadeaux - Kadotaku
 <meta
     id="metaDescription"
     name="description"
-content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de Chihiro (Sen), Sans-Visage, Haku, Chihiro et Yubaba : papercrafts, figurines, lampes, goodies et produits dérivés pour fans d'anime et de manga.">
+content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de Chihiro (Sen), Sans-Visage, Haku, Chihiro et Yubaba : papercrafts, lampes, figurines, goodies et produits dérivés pour fans d'anime et de manga.">
 
 <meta
     name="viewport"
@@ -40,7 +40,7 @@ content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de
   "@type": "CollectionPage",
   "name": "Cadeaux Le Voyage de Chihiro",
   "url": "https://www.kadotaku.fr/licence/le-voyage-de-chihiro",
-  "description": "Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de Chihiro (Sen), Sans-Visage, Haku, Chihiro et Yubaba : papercrafts, figurines, lampes, goodies et produits dérivés pour fans d'anime et de manga.",
+  "description": "Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de Chihiro (Sen), Sans-Visage, Haku, Chihiro et Yubaba : papercrafts, lampes, figurines, goodies et produits dérivés pour fans d'anime et de manga.",
   "isPartOf": {
     "@type": "WebSite",
     "name": "Kadotaku",
@@ -106,7 +106,9 @@ content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de
             class="menu-item"
         >
 
-            Types d'article ▼
+            <span class="desktop-menu-label">Types d'article</span>
+            <span class="mobile-menu-label">Types</span>
+            <span class="menu-arrow">▼</span>
 
             <div
                 class="dropdown"
@@ -128,22 +130,6 @@ content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de
 
         </div>
 
-        <button
-            id="waifuButton"
-            title="Affiche uniquement les personnages féminins"
-            class="waifu-button"
-            onclick="toggleWaifuMode()"
-        >
-            Mode Waifu
-        </button>
-        
-        <button
-            class="favorites-toggle"
-            onclick="toggleFavoritesMode()"
-        >
-            ❤ Favoris
-        </button>
-
     </div>
 
     <div class="main-title-wrapper">
@@ -163,8 +149,24 @@ content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de
     </a>
 
     <div class="main-title">
-    La référence pour tous les fans d'animes et de mangas
+    La référence pour tous les fans d'animes, mangas et jeux vidéo
     </div>
+
+    <button
+        id="waifuButton"
+        title="Affiche uniquement les personnages féminins"
+        class="waifu-button"
+        onclick="toggleWaifuMode()"
+    >
+        Mode Waifu
+    </button>
+
+    <button
+        class="favorites-toggle"
+        onclick="toggleFavoritesMode()"
+    >
+        <span class="favorites-toggle-heart">&#10084;</span> Favoris
+    </button>
 
     <a
     href="/?page=catalogue"
@@ -180,24 +182,6 @@ content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de
 
 </a>
 
-    <div class="filters-wrapper">
-
-        <div
-            class="active-filters"
-            id="activeFilters"
-        ></div>
-
-        <div
-            class="clear-all-filters"
-            id="clearAllFilters"
-            title="Supprimer les filtres en cours"
-            onclick="clearAllFilters()"
-        >
-            ×
-        </div>
-
-    </div>
-
 </div>
 
     <div class="main-header-right">
@@ -209,7 +193,12 @@ content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de
                 id="searchInput"
                 class="search-input"
                 placeholder="Naruto, figurine, Luffy..."
-                oninput="handleSearchInput()"
+                autocomplete="off"
+                autocapitalize="none"
+                enterkeyhint="search"
+                spellcheck="false"
+                oninput="handleSearchInput(event)"
+                oncompositionend="handleSearchInput(event)"
             >
 
         </div>
@@ -257,6 +246,24 @@ content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de
             </option>
 
         </select>
+
+    </div>
+
+    <div class="filters-wrapper">
+
+        <div
+            class="active-filters"
+            id="activeFilters"
+        ></div>
+
+        <div
+            class="clear-all-filters"
+            id="clearAllFilters"
+            title="Supprimer les filtres en cours"
+            onclick="clearAllFilters()"
+        >
+            ×
+        </div>
 
     </div>
 
@@ -434,7 +441,7 @@ content="Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de
 
     <div class="loading-message">
         <h1>Cadeaux Le Voyage de Chihiro</h1>
-        <p>Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de Chihiro (Sen), Sans-Visage, Haku, Chihiro et Yubaba : papercrafts, figurines, lampes, goodies et produits dérivés pour fans d'anime et de manga.</p>
+        <p>Découvrez les meilleures idées cadeaux Le Voyage de Chihiro autour de Chihiro (Sen), Sans-Visage, Haku, Chihiro et Yubaba : papercrafts, lampes, figurines, goodies et produits dérivés pour fans d'anime et de manga.</p>
         Chargement des produits...
     </div>
 
