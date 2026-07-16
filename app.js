@@ -35,6 +35,7 @@ let userSelectedSort = false;
 let showAllLicencesSecretMode = false;
 let licenceCardsRenderGeneration = 0;
 let productCardsRenderGeneration = 0;
+let refinementMenusRenderGeneration = 0;
 let animeRowByLicenceKey = new Map();
 let licenceGroupsFromSheet = new Map();
 let productsByLicenceKey = new Map();
@@ -150,9 +151,13 @@ let sidebarPromoState = {
     licence: ""
 };
 
+let mobileSidebarPromoCollapsed = false;
+
 let waifuMode = false;
 
 let quickTopType = "";
+let refineTopType = "";
+let refineTopPerso = "";
 
 let favorites = JSON.parse(
     localStorage.getItem(
@@ -195,6 +200,525 @@ let userLicenceFavorites =
 let routeLicenceFilter = "";
 
 routeLicenceFilter = "";
+
+function ensureExperimentalTopFilters(){
+
+    const header =
+        document.querySelector(".main-header");
+
+    const headerLeft =
+        document.querySelector(".main-header-left");
+
+    const titleWrapper =
+        document.querySelector(".main-title-wrapper");
+
+    const title =
+        titleWrapper?.querySelector(".main-title");
+
+    if(
+        !header ||
+        !headerLeft ||
+        !titleWrapper
+    ){
+        return;
+    }
+
+    let sloganBar =
+        document.querySelector(".slogan-bar");
+
+    if(!sloganBar){
+
+        sloganBar =
+            document.createElement("div");
+
+        sloganBar.className = "slogan-bar";
+
+        header.insertAdjacentElement(
+            "beforebegin",
+            sloganBar
+        );
+    }
+
+    if(title){
+
+        if(
+            !title.querySelector(
+                ".experimental-slogan-text"
+            )
+        ){
+
+            const sloganText =
+                title.textContent.trim();
+
+            title.textContent = "";
+
+            const sloganTextElement =
+                document.createElement("span");
+
+            sloganTextElement.className =
+                "experimental-slogan-text";
+
+            sloganTextElement.textContent =
+                sloganText;
+
+            title.appendChild(
+                sloganTextElement
+            );
+        }
+
+        sloganBar.appendChild(title);
+    }
+
+    let navigationGroup =
+        document.getElementById(
+            "navigationTopControls"
+        );
+
+    if(!navigationGroup){
+
+        navigationGroup =
+            document.createElement("div");
+
+        navigationGroup.id =
+            "navigationTopControls";
+
+        navigationGroup.className =
+            "standalone-navigation-controls";
+
+        navigationGroup.innerHTML = `
+            <div class="top-control-group-content"></div>
+        `;
+
+        headerLeft.prepend(
+            navigationGroup
+        );
+    }
+
+    const navigationContent =
+        navigationGroup.querySelector(
+            ".top-control-group-content"
+        );
+
+    headerLeft
+        .querySelectorAll(
+            ":scope > .top-icon-button"
+        )
+        .forEach(button =>{
+
+            button.classList.add(
+                "experimental-navigation-button"
+            );
+
+            if(
+                !button.querySelector(
+                    ".experimental-navigation-label"
+                )
+            ){
+
+                const label =
+                    document.createElement("span");
+
+                label.className =
+                    "experimental-navigation-label";
+
+                label.textContent =
+                    button.title ||
+                    "Navigation";
+
+                button.appendChild(
+                    label
+                );
+            }
+
+            navigationContent?.appendChild(
+                button
+            );
+        });
+
+    let universeGroup =
+        document.getElementById(
+            "universeTopControls"
+        );
+
+    if(!universeGroup){
+
+        universeGroup =
+            document.createElement("div");
+
+        universeGroup.id =
+            "universeTopControls";
+
+        universeGroup.className =
+            "top-control-group top-control-group-universe";
+
+        universeGroup.innerHTML = `
+            <div class="top-filter-group-label">
+                Univers
+            </div>
+
+            <div class="top-control-group-content"></div>
+        `;
+
+        navigationGroup.insertAdjacentElement(
+            "afterend",
+            universeGroup
+        );
+    }
+
+    const licenceMenu =
+        document
+            .getElementById("licencesDropdown")
+            ?.closest(".menu-item");
+
+    const typeMenu =
+        document
+            .getElementById("typesDropdown")
+            ?.closest(".menu-item");
+
+    let newSearchGroup =
+        document.getElementById(
+            "newSearchTopFilters"
+        );
+
+    if(!newSearchGroup){
+
+        newSearchGroup =
+            document.createElement("div");
+
+        newSearchGroup.id =
+            "newSearchTopFilters";
+
+        newSearchGroup.className =
+            "top-filter-group top-filter-group-new";
+
+        newSearchGroup.innerHTML = `
+            <div class="top-filter-group-label">
+                Nouvelle recherche
+            </div>
+        `;
+
+        headerLeft.appendChild(
+            newSearchGroup
+        );
+    }
+
+    if(licenceMenu){
+        newSearchGroup.appendChild(
+            licenceMenu
+        );
+    }
+
+    if(typeMenu){
+        newSearchGroup.appendChild(
+            typeMenu
+        );
+    }
+
+    let refineGroup =
+        document.getElementById(
+            "refineTopFilters"
+        );
+
+    if(!refineGroup){
+
+        refineGroup =
+            document.createElement("div");
+
+        refineGroup.id =
+            "refineTopFilters";
+
+        refineGroup.className =
+            "top-filter-group top-filter-group-refine";
+
+        refineGroup.hidden = true;
+
+        refineGroup.innerHTML = `
+            <div class="top-filter-group-label">
+                Ajouter des filtres
+            </div>
+
+            <div class="menu-item refine-menu-item">
+                <span
+                    class="refine-menu-label"
+                    id="refineTypeLabel"
+                >
+                    Type
+                </span>
+                <span class="menu-arrow">&#9660;</span>
+
+                <div
+                    class="dropdown refine-dropdown"
+                    id="refineTypesDropdown"
+                ></div>
+            </div>
+
+            <div class="menu-item refine-menu-item">
+                <span
+                    class="refine-menu-label"
+                    id="refinePersoLabel"
+                >
+                    <span class="refine-perso-label-desktop">
+                        Personnage
+                    </span>
+                    <span class="refine-perso-label-mobile">
+                        Persos
+                    </span>
+                </span>
+                <span class="menu-arrow">&#9660;</span>
+
+                <div
+                    class="dropdown refine-dropdown"
+                    id="refinePersosDropdown"
+                ></div>
+            </div>
+        `;
+
+        headerLeft.appendChild(
+            refineGroup
+        );
+    }
+
+    let toolsGroup =
+        document.getElementById(
+            "toolsTopControls"
+        );
+
+    if(!toolsGroup){
+
+        toolsGroup =
+            document.createElement("div");
+
+        toolsGroup.id =
+            "toolsTopControls";
+
+        toolsGroup.className =
+            "top-control-group top-control-group-neutral top-control-group-tools";
+
+        toolsGroup.innerHTML = `
+            <div class="top-filter-group-label">
+                Outils
+            </div>
+
+            <div class="top-control-group-content"></div>
+        `;
+
+        headerLeft.appendChild(
+            toolsGroup
+        );
+    }
+
+    const toolsContent =
+        toolsGroup.querySelector(
+            ".top-control-group-content"
+        );
+
+    const waifuButton =
+        document.getElementById(
+            "waifuButton"
+        );
+
+    const favoritesButton =
+        document.querySelector(
+            ".favorites-toggle"
+        );
+
+    const headerRight =
+        document.querySelector(
+            ".main-header-right"
+        );
+
+    if(waifuButton){
+        toolsContent?.appendChild(
+            waifuButton
+        );
+    }
+
+    if(favoritesButton){
+        toolsContent?.appendChild(
+            favoritesButton
+        );
+    }
+
+    if(headerRight){
+        toolsContent?.appendChild(
+            headerRight
+        );
+    }
+
+    placeResponsiveSlogan();
+}
+
+function placeResponsiveSlogan(){
+
+    const title =
+        document.querySelector(".main-title");
+
+    const titleWrapper =
+        document.querySelector(".main-title-wrapper");
+
+    const sloganBar =
+        document.querySelector(".slogan-bar");
+
+    if(
+        !title ||
+        !titleWrapper ||
+        !sloganBar
+    ){
+        return;
+    }
+
+    if(window.innerWidth <= 768){
+
+        const catalogueButton =
+            titleWrapper.querySelector(
+                ".mobile-only-icon:last-of-type"
+            );
+
+        titleWrapper.insertBefore(
+            title,
+            catalogueButton || null
+        );
+
+        return;
+    }
+
+    sloganBar.appendChild(title);
+}
+
+function placeMobileHeaderControls(){
+
+    const headerLeft =
+        document.querySelector(".main-header-left");
+
+    const universeGroup =
+        document.getElementById(
+            "universeTopControls"
+        );
+
+    const toolsGroup =
+        document.getElementById(
+            "toolsTopControls"
+        );
+
+    const newSearchGroup =
+        document.getElementById(
+            "newSearchTopFilters"
+        );
+
+    const refineGroup =
+        document.getElementById(
+            "refineTopFilters"
+        );
+
+    if(
+        !headerLeft ||
+        !universeGroup ||
+        !toolsGroup ||
+        !newSearchGroup ||
+        !refineGroup
+    ){
+        return;
+    }
+
+    let mobileActions =
+        document.getElementById(
+            "mobilePrimaryActions"
+        );
+
+    if(!mobileActions){
+
+        mobileActions =
+            document.createElement("div");
+
+        mobileActions.id =
+            "mobilePrimaryActions";
+
+        mobileActions.className =
+            "mobile-primary-actions";
+    }
+
+    if(window.innerWidth <= 768){
+
+        const universeSwitch =
+            document.getElementById(
+                "universeSwitch"
+            );
+
+        const waifuButton =
+            document.getElementById(
+                "waifuButton"
+            );
+
+        const favoritesButton =
+            document.querySelector(
+                ".favorites-toggle"
+            );
+
+        headerLeft.insertBefore(
+            mobileActions,
+            newSearchGroup
+        );
+
+        if(universeSwitch){
+            mobileActions.appendChild(
+                universeSwitch
+            );
+        }
+
+        if(waifuButton){
+            mobileActions.appendChild(
+                waifuButton
+            );
+        }
+
+        if(favoritesButton){
+            mobileActions.appendChild(
+                favoritesButton
+            );
+        }
+
+        headerLeft.insertBefore(
+            newSearchGroup,
+            refineGroup
+        );
+
+        headerLeft.insertBefore(
+            refineGroup,
+            toolsGroup
+        );
+
+        return;
+    }
+
+    placeUniverseSwitchForViewport();
+    placeFavoritesButtonForViewport();
+
+    if(mobileActions.isConnected){
+        mobileActions.remove();
+    }
+}
+
+function updateRefinementGroupVisibility(
+    hasVisibleProducts
+){
+
+    const refineGroup =
+        document.getElementById(
+            "refineTopFilters"
+        );
+
+    if(!refineGroup){
+        return;
+    }
+
+    refineGroup.hidden =
+        !hasVisibleProducts;
+
+    refineGroup.classList.toggle(
+        "is-available",
+        hasVisibleProducts
+    );
+}
 
 function escapeHtml(value){
 
@@ -373,6 +897,7 @@ function saveLicenceUniverseMode(){
 function ensureUniverseSwitch(){
 
     if(document.getElementById("universeSwitch")){
+        placeUniverseSwitchForViewport();
         updateUniverseSwitch();
         return;
     }
@@ -395,7 +920,12 @@ function ensureUniverseSwitch(){
             data-universe="anime"
             onclick="setLicenceUniverseMode('anime')"
         >
-            Animes / Mangas
+            <span class="universe-label-desktop">
+                Animes / Mangas
+            </span>
+            <span class="universe-label-mobile">
+                Anime
+            </span>
         </button>
         <button
             type="button"
@@ -403,38 +933,37 @@ function ensureUniverseSwitch(){
             data-universe="game"
             onclick="setLicenceUniverseMode('game')"
         >
-            Jeux Vid&eacute;o
+            <span class="universe-label-desktop">
+                Jeux Vid&eacute;o
+            </span>
+            <span class="universe-label-mobile">
+                Jeux Vid&eacute;o
+            </span>
         </button>
     `;
 
-    const headerLeft =
-        document.querySelector(".main-header-left");
-
-    const catalogueButton =
+    const universeContent =
         document.querySelector(
-            ".main-header-left .top-icon-button:nth-of-type(2)"
+            "#universeTopControls .top-control-group-content"
         );
 
-    const header =
-        document.querySelector(".main-header");
+    const headerLeft =
+        document.querySelector(
+            ".main-header-left"
+        );
 
-    if(headerLeft && catalogueButton){
-        catalogueButton.insertAdjacentElement(
-            "afterend",
+    if(universeContent){
+        universeContent.appendChild(
             switcher
         );
     } else if(headerLeft){
-        headerLeft.insertAdjacentElement(
-            "afterbegin",
-            switcher
-        );
-    } else if(header){
-        header.insertAdjacentElement(
-            "afterbegin",
+        headerLeft.prepend(
             switcher
         );
     } else {
-        document.body.prepend(switcher);
+        document.body.prepend(
+            switcher
+        );
     }
 
     updateUniverseSwitch();
@@ -449,37 +978,13 @@ function placeUniverseSwitchForViewport(){
         return;
     }
 
-    const titleWrapper =
-        document.querySelector(".main-title-wrapper");
-
-    const headerLeft =
-        document.querySelector(".main-header-left");
-
-    const catalogueButton =
+    const universeContent =
         document.querySelector(
-            ".main-header-left .top-icon-button:nth-of-type(2)"
+            "#universeTopControls .top-control-group-content"
         );
 
-    if(
-        window.matchMedia("(max-width:768px)").matches &&
-        titleWrapper
-    ){
-        titleWrapper.insertAdjacentElement(
-            "afterend",
-            switcher
-        );
-
-        return;
-    }
-
-    if(catalogueButton){
-        catalogueButton.insertAdjacentElement(
-            "afterend",
-            switcher
-        );
-    } else if(headerLeft){
-        headerLeft.insertAdjacentElement(
-            "afterbegin",
+    if(universeContent){
+        universeContent.appendChild(
             switcher
         );
     }
@@ -493,41 +998,29 @@ function placeFavoritesButtonForViewport(){
     const waifuButton =
         document.getElementById("waifuButton");
 
-    const headerLeft =
-        document.querySelector(".main-header-left");
+    const toolsContent =
+        document.querySelector(
+            "#toolsTopControls .top-control-group-content"
+        );
 
-    const title =
-        document.querySelector(".main-title-wrapper .main-title");
+    if(toolsContent){
 
-    if(
-        window.matchMedia("(max-width:768px)").matches &&
-        headerLeft
-    ){
+        const headerRight =
+            toolsContent.querySelector(
+                ".main-header-right"
+            );
+
         if(waifuButton){
-            headerLeft.appendChild(waifuButton);
-        }
-
-        if(favoritesButton){
-            headerLeft.appendChild(favoritesButton);
-        }
-
-        return;
-    }
-
-    if(title){
-        if(waifuButton){
-            title.insertAdjacentElement(
-                "afterend",
-                waifuButton
+            toolsContent.insertBefore(
+                waifuButton,
+                headerRight || null
             );
         }
 
         if(favoritesButton){
-            (
-                waifuButton || title
-            ).insertAdjacentElement(
-                "afterend",
-                favoritesButton
+            toolsContent.insertBefore(
+                favoritesButton,
+                headerRight || null
             );
         }
     }
@@ -1102,20 +1595,19 @@ function setLicenceUniverseMode(mode){
     saveLicenceUniverseMode();
     updateUniverseSwitch();
 
-    if(
-        sidebarPromoState.mode === "home" ||
-        sidebarPromoState.mode === "catalogue"
-    ){
-        updateSidebarPromoCard(
-            sidebarPromoState.mode
-        );
-    }
+    window.history.replaceState(
+        null,
+        "",
+        "/"
+    );
 
     resetAllFiltersForTopDropdown();
     clearMainFilters();
 
     routeLicenceFilter = "";
     quickTopType = "";
+    refineTopType = "";
+    refineTopPerso = "";
 
     rebuildVisibleLicenceList();
 
@@ -1125,20 +1617,23 @@ function setLicenceUniverseMode(mode){
     topMenusPinnedLicenceKey = "";
 
     buildLicenceCards();
+    updateSidebarPromoCard("home");
 
     if(productsLoaded){
         buildSidebar();
         buildTopMenus();
         menusBuilt = true;
 
-        if(isHomeRoute()){
+        scheduleRefinementMenusUpdate(
+            allProducts.filter(product =>
+                isLicenceVisible(
+                    product.licence
+                )
+            ),
+            false
+        );
 
-            handleLicenceRoute();
-
-        } else {
-
-            startSearch();
-        }
+        handleLicenceRoute();
     }
 }
 
@@ -2617,6 +3112,7 @@ async function loadData(){
     placeUniverseSwitchForViewport();
 
     placeFavoritesButtonForViewport();
+    placeMobileHeaderControls();
 
     console.time("HOME_RENDER");
 
@@ -3355,6 +3851,277 @@ function buildLicenceCards(){
 
 /* TOP MENUS */
 
+function setRefineTopType(type){
+
+    refineTopType =
+        refineTopType === type
+            ? ""
+            : type;
+
+    startSearch();
+    closeTopMenus();
+    closeTopMenusOnMobile();
+}
+
+function setRefineTopPerso(perso){
+
+    refineTopPerso =
+        refineTopPerso === perso
+            ? ""
+            : perso;
+
+    startSearch();
+    closeTopMenus();
+    closeTopMenusOnMobile();
+}
+
+function updateRefinementMenus(
+    contextProducts = [],
+    allowPersonOptions = true
+){
+
+    const typesDropdown =
+        document.getElementById(
+            "refineTypesDropdown"
+        );
+
+    const persosDropdown =
+        document.getElementById(
+            "refinePersosDropdown"
+        );
+
+    const typeLabel =
+        document.getElementById(
+            "refineTypeLabel"
+        );
+
+    const persoLabel =
+        document.getElementById(
+            "refinePersoLabel"
+        );
+
+    if(
+        !typesDropdown ||
+        !persosDropdown
+    ){
+        return;
+    }
+
+    const productsForTypes =
+        refineTopPerso
+            ? contextProducts.filter(product =>
+                product._persoKeys.has(
+                    normalizeLicenceKey(
+                        refineTopPerso
+                    )
+                )
+            )
+            : contextProducts;
+
+    const productsForPersos =
+        refineTopType
+            ? contextProducts.filter(product =>
+                product.type ===
+                refineTopType
+            )
+            : contextProducts;
+
+    const availableTypes =
+        [
+            ...new Set(
+                productsForTypes
+                    .map(product => product.type)
+                    .filter(Boolean)
+            )
+        ].sort(compareText);
+
+    const availablePersos =
+        allowPersonOptions
+            ? [
+                ...new Set(
+                    productsForPersos
+                        .flatMap(product =>
+                            product._persos || []
+                        )
+                        .filter(perso =>
+                            perso &&
+                            normalizeLicenceKey(perso) !==
+                                "divers"
+                        )
+                )
+            ].sort(compareText)
+            : [];
+
+    const renderEmptyState = label => `
+        <div class="refine-dropdown-empty">
+            Aucun ${label} compatible
+        </div>
+    `;
+
+    typesDropdown.innerHTML = `
+        <div class="dropdown-scroll">
+            <div
+                class="dropdown-item refine-dropdown-reset ${
+                    refineTopType
+                        ? ""
+                        : "active"
+                }"
+                onclick="setRefineTopType('')"
+            >
+                Tous les types compatibles
+            </div>
+
+            ${
+                availableTypes.length
+                    ? availableTypes
+                        .map(type => `
+                            <div
+                                class="dropdown-item refine-dropdown-choice ${
+                                    refineTopType === type
+                                        ? "active"
+                                        : ""
+                                }"
+                                data-value="${encodeURIComponent(type)}"
+                                onclick="
+                                    setRefineTopType(
+                                        decodeURIComponent(
+                                            this.dataset.value
+                                        )
+                                    )
+                                "
+                            >
+                                ${escapeHtml(type)}
+                            </div>
+                        `)
+                        .join("")
+                    : renderEmptyState("type")
+            }
+        </div>
+    `;
+
+    persosDropdown.innerHTML = `
+        <div class="dropdown-scroll">
+            <div
+                class="dropdown-item refine-dropdown-reset ${
+                    refineTopPerso
+                        ? ""
+                        : "active"
+                }"
+                onclick="setRefineTopPerso('')"
+            >
+                Tous les personnages compatibles
+            </div>
+
+            ${
+                availablePersos.length
+                    ? availablePersos
+                        .map(perso => `
+                            <div
+                                class="dropdown-item refine-dropdown-choice ${
+                                    refineTopPerso === perso
+                                        ? "active"
+                                        : ""
+                                }"
+                                data-value="${encodeURIComponent(perso)}"
+                                onclick="
+                                    setRefineTopPerso(
+                                        decodeURIComponent(
+                                            this.dataset.value
+                                        )
+                                    )
+                                "
+                            >
+                                ${escapeHtml(perso)}
+                            </div>
+                        `)
+                        .join("")
+                    : (
+                        allowPersonOptions
+                            ? renderEmptyState(
+                                "personnage"
+                            )
+                            : `
+                                <div class="refine-dropdown-empty">
+                                    Lancez d'abord une recherche ou choisissez une licence
+                                </div>
+                            `
+                    )
+            }
+        </div>
+    `;
+
+    if(typeLabel){
+
+        typeLabel.textContent =
+            refineTopType ||
+            "Type";
+
+        typeLabel.title =
+            refineTopType || "";
+    }
+
+    if(persoLabel){
+
+        if(refineTopPerso){
+
+            persoLabel.textContent =
+                refineTopPerso;
+
+        } else {
+
+            persoLabel.innerHTML = `
+                <span class="refine-perso-label-desktop">
+                    Personnage
+                </span>
+                <span class="refine-perso-label-mobile">
+                    Persos
+                </span>
+            `;
+        }
+
+        persoLabel.title =
+            refineTopPerso || "";
+    }
+
+    typesDropdown
+        .closest(".menu-item")
+        ?.classList.toggle(
+            "active",
+            Boolean(refineTopType)
+        );
+
+    persosDropdown
+        .closest(".menu-item")
+        ?.classList.toggle(
+            "active",
+            Boolean(refineTopPerso)
+        );
+}
+
+function scheduleRefinementMenusUpdate(
+    contextProducts,
+    allowPersonOptions
+){
+
+    const renderGeneration =
+        ++refinementMenusRenderGeneration;
+
+    requestAnimationFrame(()=>{
+
+        if(
+            renderGeneration !==
+            refinementMenusRenderGeneration
+        ){
+            return;
+        }
+
+        updateRefinementMenus(
+            contextProducts,
+            allowPersonOptions
+        );
+    });
+}
+
 function getTopMenuPinnedLicence(){
 
     if(routeLicenceFilter){
@@ -4053,6 +4820,8 @@ function hasActiveProductContext(){
     return Boolean(
         routeLicenceFilter ||
         quickTopType ||
+        refineTopType ||
+        refineTopPerso ||
         searchText ||
         waifuMode ||
         favoritesMode ||
@@ -4125,6 +4894,9 @@ function clearMainFilters({ preserveSearch = false } = {}){
         if(searchInput){
             searchInput.value = "";
         }
+
+        refineTopType = "";
+        refineTopPerso = "";
     }
 
     quickTopType = "";
@@ -4416,6 +5188,48 @@ function updateActiveFilters(){
         );
     }
 
+    if(refineTopType){
+
+        addFilterTag(
+            'refine-type:' + refineTopType,
+            `
+                <div class="filter-tag refine-filter-tag">
+
+                    Affiner : ${escapeHtml(refineTopType)}
+
+                    <span
+                        class="filter-remove"
+                        onclick="removeFilter('refineType')"
+                    >
+                        &times;
+                    </span>
+
+                </div>
+            `
+        );
+    }
+
+    if(refineTopPerso){
+
+        addFilterTag(
+            'refine-perso:' + refineTopPerso,
+            `
+                <div class="filter-tag refine-filter-tag">
+
+                    Affiner : ${escapeHtml(refineTopPerso)}
+
+                    <span
+                        class="filter-remove"
+                        onclick="removeFilter('refinePerso')"
+                    >
+                        &times;
+                    </span>
+
+                </div>
+            `
+        );
+    }
+
     const selectedTypes =
         [...document.querySelectorAll(
             '#typeList input:checked'
@@ -4660,6 +5474,8 @@ if(favoritesMode){
         routeLicenceFilter ||
         searchText ||
         quickTopType ||
+        refineTopType ||
+        refineTopPerso ||
         waifuMode ||
         favoritesMode ||
         activeQuickBudget ||
@@ -4805,6 +5621,16 @@ function startSearch(){
             normalizeLicenceKey
         );
 
+    const hasRefinementBaseContext =
+        Boolean(
+            routeLicenceFilter ||
+            searchText ||
+            quickTopType ||
+            selectedTypes.length ||
+            selectedLicences.length ||
+            selectedPersos.length
+        );
+
     syncDefaultSortForContext();
 
     const sort =
@@ -4834,7 +5660,8 @@ function startSearch(){
                 getLicenceGroup(licence).length
             );
 
-    allResults = allProducts.filter(p=>{
+    const contextResults =
+        allProducts.filter(p=>{
 
         if(
             !isLicenceVisible(p.licence) &&
@@ -4970,7 +5797,34 @@ function startSearch(){
         }
 
         return true;
-    });
+        });
+
+    const refinePersoKey =
+        normalizeLicenceKey(
+            refineTopPerso
+        );
+
+    allResults =
+        contextResults.filter(product =>{
+
+            if(
+                refineTopType &&
+                product.type !== refineTopType
+            ){
+                return false;
+            }
+
+            if(
+                refinePersoKey &&
+                !product._persoKeys.has(
+                    refinePersoKey
+                )
+            ){
+                return false;
+            }
+
+            return true;
+        });
 
     allResults.sort((a,b)=>{
 
@@ -5051,6 +5905,15 @@ function startSearch(){
 
     displayProducts();
 
+    updateRefinementGroupVisibility(
+        allResults.length > 0
+    );
+
+    scheduleRefinementMenusUpdate(
+        contextResults,
+        hasRefinementBaseContext
+    );
+
     updateSidebarTypeVisibility();
 
     updateActiveFilters();
@@ -5071,6 +5934,16 @@ function removeFilter(type,value){
     if(type === 'quickType'){
 
         quickTopType = "";
+    }
+
+    if(type === 'refineType'){
+
+        refineTopType = "";
+    }
+
+    if(type === 'refinePerso'){
+
+        refineTopPerso = "";
     }
 
         if(
@@ -5350,11 +6223,17 @@ function displayProducts(){
             .join("");
 
     grid.innerHTML =
-        buildBatch(
-            0,
-            initialBatchSize,
-            true
-        );
+        productsToRender.length
+            ? buildBatch(
+                0,
+                initialBatchSize,
+                true
+            )
+            : `
+                <div class="no-products-message">
+                    Aucun article ne correspond aux filtres actuels.
+                </div>
+            `;
 
     showAmazonDisclosure();
 
@@ -6211,6 +7090,41 @@ function scrollResultsToTop(){
 const resultsScrollTop =
     document.querySelector(".results-scroll-top");
 
+function updateMobileResultsScrollTop(){
+
+    if(!resultsScrollTop){
+        return;
+    }
+
+    if(window.innerWidth > 768){
+
+        resultsScrollTop.classList.remove(
+            "is-mobile-visible"
+        );
+
+        return;
+    }
+
+    const products =
+        document.querySelector(".products");
+
+    const pageScroller =
+        document.scrollingElement ||
+        document.documentElement;
+
+    const scrollPosition =
+        Math.max(
+            window.scrollY || 0,
+            pageScroller?.scrollTop || 0,
+            products?.scrollTop || 0
+        );
+
+    resultsScrollTop.classList.toggle(
+        "is-mobile-visible",
+        scrollPosition > 24
+    );
+}
+
 if(resultsScrollTop){
 
     resultsScrollTop.addEventListener(
@@ -6218,6 +7132,22 @@ if(resultsScrollTop){
         scrollResultsToTop,
         { capture: true }
     );
+
+    window.addEventListener(
+        "scroll",
+        updateMobileResultsScrollTop,
+        { passive: true }
+    );
+
+    document
+        .querySelector(".products")
+        ?.addEventListener(
+            "scroll",
+            updateMobileResultsScrollTop,
+            { passive: true }
+        );
+
+    updateMobileResultsScrollTop();
 }
 
 const sidebar = document.querySelector('.sidebar');
@@ -6463,7 +7393,23 @@ function updateSidebarPromoCard(mode, licence = ""){
 
     box.innerHTML = `
 
+        <button
+            type="button"
+            class="mobile-promo-toggle"
+            aria-label="Replier la vignette"
+            aria-expanded="true"
+            onclick="toggleMobileSidebarPromo(event)"
+        >
+            <span class="mobile-promo-toggle-expanded">
+                &#8593;
+            </span>
+            <span class="mobile-promo-toggle-collapsed">
+                &#8595; Afficher Vignette
+            </span>
+        </button>
+
         <div
+            class="sidebar-promo-visual"
             style="
                 position:relative;
             "
@@ -6517,6 +7463,114 @@ function updateSidebarPromoCard(mode, licence = ""){
 
         </div>
     `;
+
+    placeSidebarPromoCardForViewport();
+    updateMobileSidebarPromoState();
+}
+
+function updateMobileSidebarPromoState(){
+
+    const box =
+        document.getElementById(
+            "sidebarPromoCard"
+        );
+
+    if(!box){
+        return;
+    }
+
+    box.classList.toggle(
+        "is-mobile-collapsed",
+        mobileSidebarPromoCollapsed
+    );
+
+    const toggle =
+        box.querySelector(
+            ".mobile-promo-toggle"
+        );
+
+    if(toggle){
+
+        toggle.setAttribute(
+            "aria-expanded",
+            String(
+                !mobileSidebarPromoCollapsed
+            )
+        );
+
+        toggle.setAttribute(
+            "aria-label",
+            mobileSidebarPromoCollapsed
+                ? "Afficher la vignette"
+                : "Replier la vignette"
+        );
+    }
+}
+
+function toggleMobileSidebarPromo(event){
+
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    mobileSidebarPromoCollapsed =
+        !mobileSidebarPromoCollapsed;
+
+    updateMobileSidebarPromoState();
+
+    return false;
+}
+
+function placeSidebarPromoCardForViewport(){
+
+    const box =
+        document.getElementById(
+            "sidebarPromoCard"
+        );
+
+    const sidebar =
+        document.querySelector(".sidebar");
+
+    const products =
+        document.querySelector(".products");
+
+    if(
+        !box ||
+        !sidebar ||
+        !products
+    ){
+        return;
+    }
+
+    let mobileHost =
+        document.getElementById(
+            "mobileSidebarPromoHost"
+        );
+
+    if(!mobileHost){
+
+        mobileHost =
+            document.createElement("div");
+
+        mobileHost.id =
+            "mobileSidebarPromoHost";
+
+        mobileHost.className =
+            "mobile-sidebar-promo-host";
+
+        products.insertAdjacentElement(
+            "beforebegin",
+            mobileHost
+        );
+    }
+
+    if(window.innerWidth <= 768){
+
+        mobileHost.appendChild(box);
+
+        return;
+    }
+
+    sidebar.prepend(box);
 }
 
 function handleLicenceRoute(){
@@ -6728,7 +7782,33 @@ function handleLicenceRoute(){
     startSearch();
 }
 
-loadData();
+ensureExperimentalTopFilters();
+loadData().catch(error =>{
+
+    console.error(
+        "Erreur de chargement Kadotaku :",
+        error
+    );
+
+    const productGrid =
+        document.getElementById(
+            "productGrid"
+        );
+
+    if(productGrid){
+
+        updateRefinementGroupVisibility(
+            false
+        );
+
+        productGrid.innerHTML = `
+            <div class="loading-message">
+                Le chargement a rencontr&eacute; une erreur.
+                Rechargez la page.
+            </div>
+        `;
+    }
+});
 
 let openSubmenuItem = null;
 let submenuCloseTimeout = null;
@@ -6740,6 +7820,161 @@ function isMobileTopMenu(){
     ).matches;
 }
 
+function getMobileMenuPanelWidth(
+    panel,
+    triggerWidth = 0
+){
+
+    const viewportMaximum =
+        Math.max(
+            210,
+            Math.min(
+                340,
+                window.innerWidth - 44
+            )
+        );
+
+    const minimum =
+        Math.min(
+            viewportMaximum,
+            Math.max(
+                210,
+                Math.min(
+                    triggerWidth,
+                    250
+                )
+            )
+        );
+
+    const style =
+        getComputedStyle(panel);
+
+    const canvas =
+        getMobileMenuPanelWidth.canvas ||
+        (
+            getMobileMenuPanelWidth.canvas =
+            document.createElement("canvas")
+        );
+
+    const context =
+        canvas.getContext("2d");
+
+    if(!context){
+        return viewportMaximum;
+    }
+
+    context.font = [
+        style.fontWeight || "400",
+        style.fontSize || "13px",
+        style.fontFamily || "sans-serif"
+    ].join(" ");
+
+    let longestTextWidth = 0;
+
+    panel
+        .querySelectorAll(
+            ".dropdown-item, .top-parent-link, " +
+            ".refine-dropdown-choice, " +
+            ".refine-dropdown-reset, " +
+            ".refine-dropdown-empty, " +
+            ".filter-label-text"
+        )
+        .forEach(element =>{
+
+            const text =
+                element.textContent
+                    .replace(/\s+/g," ")
+                    .trim();
+
+            if(!text){
+                return;
+            }
+
+            longestTextWidth =
+                Math.max(
+                    longestTextWidth,
+                    context.measureText(text).width
+                );
+        });
+
+    const contentWidth =
+        Math.ceil(longestTextWidth + 58);
+
+    return Math.min(
+        viewportMaximum,
+        Math.max(
+            minimum,
+            contentWidth
+        )
+    );
+}
+
+function positionMobileTopDropdown(
+    menuItem,
+    dropdown
+){
+
+    if(
+        !isMobileTopMenu() ||
+        !menuItem ||
+        !dropdown
+    ){
+        return;
+    }
+
+    const rect =
+        menuItem.getBoundingClientRect();
+
+    const panelWidth =
+        getMobileMenuPanelWidth(
+            dropdown,
+            rect.width
+        );
+
+    const panelLeft =
+        Math.max(
+            12,
+            Math.round(
+                (window.innerWidth - panelWidth) / 2
+            )
+        );
+
+    const top =
+        Math.min(
+            rect.bottom + 6,
+            window.innerHeight - 190
+        );
+
+    dropdown.style.position = "fixed";
+    dropdown.style.left =
+        `${panelLeft}px`;
+    dropdown.style.right = "auto";
+    dropdown.style.top =
+        `${Math.max(12,top)}px`;
+    dropdown.style.setProperty(
+        "width",
+        `${panelWidth}px`,
+        "important"
+    );
+    dropdown.style.setProperty(
+        "min-width",
+        "0",
+        "important"
+    );
+    dropdown.style.setProperty(
+        "max-width",
+        `${window.innerWidth - 44}px`,
+        "important"
+    );
+    dropdown.style.maxHeight =
+        `${Math.max(
+            170,
+            window.innerHeight -
+            Math.max(12,top) -
+            12
+        )}px`;
+}
+
 function positionTopSubmenu(item,submenu){
 
     const rect =
@@ -6749,63 +7984,64 @@ function positionTopSubmenu(item,submenu){
 
     if(isMobileTopMenu()){
 
-        const menuBar =
-            item.closest(".main-header-left");
+        const viewportMargin = 12;
 
-        const menuBarRect =
-            menuBar
-                ? menuBar.getBoundingClientRect()
-                : {bottom:120};
+        const panelWidth =
+            getMobileMenuPanelWidth(
+                submenu,
+                rect.width
+            );
 
-        const viewportMargin = 10;
-
-        const minTop =
-            Math.min(
-                window.innerHeight - 180,
-                menuBarRect.bottom + viewportMargin
+        const panelLeft =
+            Math.max(
+                viewportMargin,
+                Math.round(
+                    (
+                        window.innerWidth -
+                        panelWidth
+                    ) / 2
+                )
             );
 
         const submenuHeight =
             Math.min(
                 submenu.scrollHeight || 320,
-                window.innerHeight * 0.48
-            );
-
-        const maxTop =
-            Math.max(
-                minTop,
-                window.innerHeight -
-                submenuHeight -
-                viewportMargin
+                window.innerHeight * 0.64
             );
 
         const top =
             Math.min(
-                Math.max(rect.top,minTop),
-                maxTop
+                Math.max(
+                    viewportMargin,
+                    rect.top
+                ),
+                Math.max(
+                    viewportMargin,
+                    window.innerHeight -
+                    submenuHeight -
+                    viewportMargin
+                )
             );
 
-        const dropdown =
-            item.closest(".dropdown");
-
-        const dropdownRect =
-            dropdown
-                ? dropdown.getBoundingClientRect()
-                : {
-                    left:viewportMargin,
-                    width:window.innerWidth - viewportMargin * 2
-                };
-
         submenu.style.position = "fixed";
-        submenu.style.left =
-            `${Math.max(viewportMargin,dropdownRect.left + viewportMargin)}px`;
+        submenu.style.left = `${panelLeft}px`;
+        submenu.style.right = "auto";
         submenu.style.top = `${top}px`;
-        submenu.style.width =
-            `${Math.min(
-                window.innerWidth - viewportMargin * 2,
-                dropdownRect.width - viewportMargin * 2
-            )}px`;
-        submenu.style.minWidth = "0";
+        submenu.style.setProperty(
+            "width",
+            `${panelWidth}px`,
+            "important"
+        );
+        submenu.style.setProperty(
+            "min-width",
+            "0",
+            "important"
+        );
+        submenu.style.setProperty(
+            "max-width",
+            `${window.innerWidth - 44}px`,
+            "important"
+        );
         submenu.style.maxHeight =
             `${Math.max(
                 160,
@@ -7053,6 +8289,10 @@ document.addEventListener(
 
             if(shouldOpen){
                 dropdown.style.display = "block";
+                positionMobileTopDropdown(
+                    menuItem,
+                    dropdown
+                );
             }
 
             return;
@@ -7168,8 +8408,12 @@ window.addEventListener("resize", ()=>{
     favoritesPlacementResizeTimer =
         setTimeout(()=>{
 
+            placeResponsiveSlogan();
             placeUniverseSwitchForViewport();
             placeFavoritesButtonForViewport();
+            placeMobileHeaderControls();
+            placeSidebarPromoCardForViewport();
+            updateMobileResultsScrollTop();
 
         },120);
 });
