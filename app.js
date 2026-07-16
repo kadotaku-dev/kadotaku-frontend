@@ -1518,7 +1518,7 @@ function isFavorite(id){
     );
 }
 
-function toggleFavorite(id){
+function toggleFavorite(id,button = null){
 
     id = String(id);
 
@@ -1538,7 +1538,57 @@ function toggleFavorite(id){
 
     updateFavoritesButton();
 
-    startSearch();
+    const matchingFavoriteButtons =
+        document
+            .querySelectorAll(
+                ".favorite-btn"
+            );
+
+    matchingFavoriteButtons
+        .forEach(favoriteButton=>{
+
+            if(
+                favoriteButton.dataset.productUrl ===
+                id
+            ){
+                if(
+                    favoritesMode &&
+                    !isFavorite(id)
+                ){
+                    favoriteButton
+                        .closest(".card")
+                        ?.remove();
+
+                    return;
+                }
+
+                favoriteButton.classList.toggle(
+                    "active",
+                    isFavorite(id)
+                );
+            }
+        });
+
+    if(
+        favoritesMode &&
+        !isFavorite(id)
+    ){
+        allResults =
+            allResults.filter(
+                product =>
+                    String(product.url) !== id
+            );
+
+        showAmazonDisclosure();
+    }
+
+    if(button){
+
+        button.classList.toggle(
+            "active",
+            isFavorite(id)
+        );
+    }
 }
 
 function toggleFavoritesMode(){
@@ -5186,10 +5236,11 @@ function buildProductCardHTML(
 
                 <button
                     class="favorite-btn ${isFavorite(product.url) ? 'active' : ''}"
+                    data-product-url="${escapeAttr(product.url)}"
 
                     onclick="
                         event.stopPropagation();
-                        toggleFavorite('${product.url}')
+                        toggleFavorite('${product.url}',this)
                     "
                 >
                     &#10084;
