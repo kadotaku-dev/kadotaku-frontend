@@ -6115,6 +6115,60 @@ quickBudgetCheckboxes.forEach(b=>{
 
 updatePriceDisplay();
 
+function scrollResultsToTop(){
+
+    const products =
+        document.querySelector(".products");
+
+    if(products){
+
+        try{
+
+            products.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+
+        } catch(error){
+
+            products.scrollTop = 0;
+        }
+    }
+
+    const pageScroller =
+        document.scrollingElement ||
+        document.documentElement;
+
+    try{
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+
+    } catch(error){
+
+        pageScroller.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+
+        if(document.body){
+            document.body.scrollTop = 0;
+        }
+    }
+}
+
+const resultsScrollTop =
+    document.querySelector(".results-scroll-top");
+
+if(resultsScrollTop){
+
+    resultsScrollTop.addEventListener(
+        "click",
+        scrollResultsToTop,
+        { capture: true }
+    );
+}
+
 const sidebar = document.querySelector('.sidebar');
 
 const sidebarBackToTop =

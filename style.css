@@ -1636,6 +1636,10 @@ body.hero-mode-full .hero-full-image{
     z-index:20;
 
     padding-bottom:2px;
+
+    touch-action:manipulation;
+
+    -webkit-tap-highlight-color:transparent;
 }
 
 .results-scroll-top:hover{
