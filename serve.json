@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/licence/dragon-quest---la-quête-de-dai",
+      "destination": "/licence/dragon-quest-la-quête-de-dai",
+      "type": 301
+    }
+  ]
+}
