@@ -329,7 +329,7 @@ function productTypeLabel(type) {
   if (lower.includes("maquette")) return "maquettes";
   if (lower.includes("tapis de souris")) return "tapis de souris";
   if (lower.includes("papercraft")) return "papercrafts";
-  if (lower.includes("boÃ®te Ã  musique") || lower.includes("boîte à musique")) return "boîtes à musique";
+  if (lower.includes("boîte à musique")) return "boîtes à musique";
   if (lower.includes("goodies")) return "goodies";
   if (lower.includes("porte-cl")) return "porte-clés";
   if (lower.includes("sticker") || lower.includes("décalcomanie")) return "stickers";

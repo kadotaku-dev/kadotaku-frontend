@@ -53,17 +53,191 @@ const LICENCE_UNIVERSE_STORAGE_KEY =
 const HERO_DISPLAY_MODE_STORAGE_KEY =
     "kadotaku_hero_display_mode";
 
+const HERO_BANNER_VARIANT_STORAGE_PREFIX =
+    "kadotaku_hero_banner_variant";
+
+const HERO_BANNER_ASSET_ROOT =
+    "/images/Bandeaux";
+
+const HERO_BANNER_ASSET_VERSION =
+    "20260728-2";
+
+function getHeroBannerAssetPath(
+    universe,
+    folder,
+    file,
+    version = HERO_BANNER_ASSET_VERSION
+){
+
+    const cache =
+        version
+            ? `?v=${version}`
+            : "";
+
+    return [
+        HERO_BANNER_ASSET_ROOT,
+        universe,
+        folder,
+        file
+    ].join("/") + cache;
+}
+
+function createHeroBannerVariant(
+    universe,
+    folder,
+    id,
+    label,
+    version = HERO_BANNER_ASSET_VERSION
+){
+
+    return {
+        id,
+        label,
+        fond:
+            getHeroBannerAssetPath(
+                universe,
+                folder,
+                "fond.webp",
+                version
+            ),
+        calque:
+            getHeroBannerAssetPath(
+                universe,
+                folder,
+                "persos.webp",
+                version
+            ),
+        titre:
+            getHeroBannerAssetPath(
+                universe,
+                folder,
+                "titre.png",
+                version
+            ),
+        full:
+            getHeroBannerAssetPath(
+                universe,
+                folder,
+                "complet.webp",
+                version
+            ),
+        noTitle:
+            getHeroBannerAssetPath(
+                universe,
+                folder,
+                "complet_sans_titre.webp",
+                version
+            )
+    };
+}
+
 const HERO_GAME_FULL_IMAGE =
-    "/bandeau_game_complet.webp";
+    getHeroBannerAssetPath(
+        "game",
+        "kassandra_lara_defaut",
+        "complet.webp"
+    );
 
 const HERO_ANIME_FULL_IMAGE =
-    "/bandeau_anime_complet.webp";
+    getHeroBannerAssetPath(
+        "anime",
+        "nelliel_frieren_defaut",
+        "complet.webp"
+    );
 
 const HERO_GAME_FULL_IMAGE_NO_TITLE =
-    "/bandeau_game_complet_sans_titre.webp";
+    getHeroBannerAssetPath(
+        "game",
+        "kassandra_lara_defaut",
+        "complet_sans_titre.webp"
+    );
 
 const HERO_ANIME_FULL_IMAGE_NO_TITLE =
-    "/bandeau_anime_complet_sans_titre.webp";
+    getHeroBannerAssetPath(
+        "anime",
+        "nelliel_frieren_defaut",
+        "complet_sans_titre.webp"
+    );
+
+const HERO_BANNER_VARIANTS = {
+    anime: [
+        createHeroBannerVariant(
+            "anime",
+            "nelliel_frieren_defaut",
+            "defaut",
+            "Nelliel / Frieren — Défaut"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "nami_lucy_nuit",
+            "nami-lucy-nuit",
+            "Nami / Lucy — Nuit"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "nami_lucy_jour",
+            "nami-lucy-jour",
+            "Nami / Lucy — Jour"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "shinso_choso_nuit",
+            "shinso-choso-nuit",
+            "Shinso / Choso — Nuit"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "shinso_choso_jour",
+            "shinso-choso-jour",
+            "Shinso / Choso — Jour"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "sailormoon_sakura_nuit",
+            "sailormoon-sakura-nuit",
+            "Sailor Moon / Sakura — Nuit"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "sailormoon_sakura_jour",
+            "sailormoon-sakura-jour",
+            "Sailor Moon / Sakura — Jour"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "tohru_haruhi",
+            "tohru-haruhi",
+            "Tohru / Haruhi — Jour"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "titan_colossal",
+            "titan-colossal",
+            "Titan colossal"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "mikasa_casca_v3",
+            "mikasa-casca-v3",
+            "Mikasa / Casca — V3",
+            "20260729-2"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "mikasa_casca_v2",
+            "mikasa-casca-v2",
+            "Mikasa / Casca — V2"
+        )
+    ],
+    game: [
+        createHeroBannerVariant(
+            "game",
+            "kassandra_lara_defaut",
+            "defaut",
+            "Kassandra / Lara — Défaut"
+        )
+    ]
+};
 
 const heroFullTitleVisible = {
     anime: true,
@@ -91,13 +265,15 @@ const SIDEBAR_PROMO_VARIANTS = {
             ["fern","Fern"],
             ["groupe","Groupe"],
             ["junko-enoshima","Junko Enoshima"],
+            ["kohaku","Kohaku"],
             ["mitsuri-kanroji","Mitsuri Kanroji"],
-            ["momo-ayase","Momo Ayase"]
+            ["momo-ayase","Momo Ayase"],
+            ["yor-forger","Yor Forger"]
         ].map(([id,label]) => ({
             id,
             label,
             image:
-                `/cards/Bouton Accueil Anime - ${label}.webp`
+                `/images/Cards Accueil/Bouton Accueil Anime - ${label}.webp`
         })),
         catalogue: [
             ["frieren-fern","Frieren et Fern"],
@@ -109,7 +285,7 @@ const SIDEBAR_PROMO_VARIANTS = {
             id,
             label,
             image:
-                `/cards/Bouton Catalogue Anime - ${label}.webp`
+                `/images/Cards Catalogue/Bouton Catalogue Anime - ${label}.webp`
         }))
     },
     game: {
@@ -129,7 +305,7 @@ const SIDEBAR_PROMO_VARIANTS = {
             id,
             label,
             image:
-                `/cards/Bouton Accueil Game - ${label}.webp`
+                `/images/Cards Accueil/Bouton Accueil Game - ${label}.webp`
         })),
         catalogue: [
             ["chun-li-cammy","Chun-Li et Cammy"],
@@ -141,7 +317,7 @@ const SIDEBAR_PROMO_VARIANTS = {
             id,
             label,
             image:
-                `/cards/Bouton Catalogue Game - ${label}.webp`
+                `/images/Cards Catalogue/Bouton Catalogue Game - ${label}.webp`
         }))
     }
 };
@@ -203,6 +379,9 @@ routeLicenceFilter = "";
 
 function ensureExperimentalTopFilters(){
 
+    const expectedSlogan =
+        "La r\u00e9f\u00e9rence pour tous les fans d'animes, mangas et jeux vid\u00e9o";
+
     const header =
         document.querySelector(".main-header");
 
@@ -247,9 +426,6 @@ function ensureExperimentalTopFilters(){
             )
         ){
 
-            const sloganText =
-                title.textContent.trim();
-
             title.textContent = "";
 
             const sloganTextElement =
@@ -259,11 +435,16 @@ function ensureExperimentalTopFilters(){
                 "experimental-slogan-text";
 
             sloganTextElement.textContent =
-                sloganText;
+                expectedSlogan;
 
             title.appendChild(
                 sloganTextElement
             );
+        }
+        else{
+            title.querySelector(
+                ".experimental-slogan-text"
+            ).textContent = expectedSlogan;
         }
 
         sloganBar.appendChild(title);
@@ -434,7 +615,7 @@ function ensureExperimentalTopFilters(){
 
         refineGroup.innerHTML = `
             <div class="top-filter-group-label">
-                Ajouter des filtres
+                Affiner la recherche en cours
             </div>
 
             <div class="menu-item refine-menu-item">
@@ -1052,6 +1233,109 @@ function updateUniverseSwitch(){
     updateUniverseHero();
 }
 
+function getHeroBannerStorageKey(universe = licenceUniverseMode){
+
+    return [
+        HERO_BANNER_VARIANT_STORAGE_PREFIX,
+        universe
+    ].join("_");
+}
+
+function getHeroBannerVariants(universe = licenceUniverseMode){
+
+    return HERO_BANNER_VARIANTS[universe] ||
+        HERO_BANNER_VARIANTS.anime ||
+        [];
+}
+
+function getSelectedHeroBannerVariantId(universe = licenceUniverseMode){
+
+    try{
+        return localStorage.getItem(
+            getHeroBannerStorageKey(universe)
+        ) || "defaut";
+    } catch(error){
+        return "defaut";
+    }
+}
+
+function getCurrentHeroBannerVariant(){
+
+    const variants =
+        getHeroBannerVariants();
+
+    const defaut =
+        variants.find(variant =>
+            variant.id === "defaut"
+        ) || variants[0] || {};
+
+    const selected =
+        variants.find(variant =>
+            variant.id === getSelectedHeroBannerVariantId()
+        ) || defaut;
+
+    return {
+        ...defaut,
+        ...selected
+    };
+}
+
+function cycleHeroBannerVariant(
+    event,
+    direction = 1
+){
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const variants =
+        getHeroBannerVariants();
+
+    if(variants.length < 2){
+        return false;
+    }
+
+    const currentId =
+        getSelectedHeroBannerVariantId();
+
+    const currentIndex =
+        Math.max(
+            0,
+            variants.findIndex(variant =>
+                variant.id === currentId
+            )
+        );
+
+    const nextVariant =
+        variants[
+            (
+                currentIndex +
+                direction +
+                variants.length
+            ) %
+            variants.length
+        ];
+
+    try{
+        if(nextVariant.id === "defaut"){
+            localStorage.removeItem(
+                getHeroBannerStorageKey()
+            );
+        } else {
+            localStorage.setItem(
+                getHeroBannerStorageKey(),
+                nextVariant.id
+            );
+        }
+    } catch(error){
+        // La variante change quand même pour le rendu courant.
+    }
+
+    updateUniverseHero();
+
+    return false;
+}
+
 function updateUniverseHero(){
 
     const heroBackground =
@@ -1060,26 +1344,45 @@ function updateUniverseHero(){
     const heroOverlay =
         document.querySelector(".hero-overlay");
 
+    const heroTitle =
+        document.querySelector(".hero-title");
+
+    const heroBanner =
+        getCurrentHeroBannerVariant();
+
     const isGameUniverse =
         licenceUniverseMode === "game";
 
     if(heroBackground){
         heroBackground.style.backgroundImage =
-            isGameUniverse
-                ? 'url("/bandeau_game_fond.webp")'
-                : 'url("/bandeau_anime_fond.webp")';
+            `url("${heroBanner.fond}")`;
     }
 
     if(heroOverlay){
         heroOverlay.src =
-            isGameUniverse
-                ? "/bandeau_game_calque.webp"
-                : "/bandeau_anime_calque.webp";
+            heroBanner.calque;
 
         heroOverlay.alt =
             isGameUniverse
                 ? "Bandeau Kadotaku Jeux Vid\u00e9o"
                 : "Bandeau Kadotaku Animes et Mangas";
+    }
+
+    if(heroTitle){
+        if(heroBanner.titre){
+            heroTitle.src =
+                heroBanner.titre;
+
+            heroTitle.hidden =
+                false;
+
+            heroTitle.alt =
+                "Logo Kadotaku";
+        } else {
+            heroTitle.removeAttribute("src");
+            heroTitle.hidden =
+                true;
+        }
     }
 
     applyHeroDisplayMode();
@@ -1088,9 +1391,7 @@ function updateUniverseHero(){
 }
 
 function getCurrentHeroThemePath(){
-    return licenceUniverseMode === "game"
-        ? "/bandeau_game_fond.webp"
-        : "/bandeau_anime_fond.webp";
+    return getCurrentHeroBannerVariant().fond;
 }
 
 function setSiteThemeColors(colors){
@@ -1291,6 +1592,8 @@ function ensureHeroDisplayControls(){
             event.stopPropagation();
             openModal(
                 getHeroFullImagePath(),
+                true,
+                "",
                 true
             );
         });
@@ -1322,12 +1625,46 @@ function ensureHeroDisplayControls(){
                 aria-label="Afficher la version sans titre"
                 title="Afficher la version sans titre"
             ></button>
+            <div
+                class="hero-banner-variant-controls"
+            >
+                <button
+                    type="button"
+                    class="hero-display-button hero-banner-variant-cycle"
+                    data-direction="-1"
+                    aria-label="Bandeau précédent"
+                    title="Bandeau précédent"
+                >&#8592;</button>
+                <button
+                    type="button"
+                    class="hero-display-button hero-banner-variant-cycle"
+                    data-direction="1"
+                    aria-label="Bandeau suivant"
+                    title="Bandeau suivant"
+                >&#8594;</button>
+            </div>
         `;
 
         controls.addEventListener("click",event =>{
             event.stopPropagation();
 
             if(
+                event.target.closest(
+                    ".hero-banner-variant-cycle"
+                )
+            ){
+                const cycleButton =
+                    event.target.closest(
+                        ".hero-banner-variant-cycle"
+                    );
+
+                cycleHeroBannerVariant(
+                    event,
+                    Number(
+                        cycleButton.dataset.direction
+                    ) || 1
+                );
+            } else if(
                 event.target.closest(
                     ".hero-display-title-toggle"
                 )
@@ -1357,9 +1694,12 @@ function ensureHeroDisplayControls(){
 
 function getHeroFullImageNoTitlePath(){
 
-    return licenceUniverseMode === "game"
-        ? HERO_GAME_FULL_IMAGE_NO_TITLE
-        : HERO_ANIME_FULL_IMAGE_NO_TITLE;
+    return getCurrentHeroBannerVariant().noTitle ||
+        (
+            licenceUniverseMode === "game"
+                ? HERO_GAME_FULL_IMAGE_NO_TITLE
+                : HERO_ANIME_FULL_IMAGE_NO_TITLE
+        );
 }
 
 function checkHeroFullNoTitleAvailability(){
@@ -1520,6 +1860,11 @@ function applyHeroDisplayMode(){
             ".hero-display-title-toggle"
         );
 
+    const bannerVariantControls =
+        hero.querySelector(
+            ".hero-banner-variant-controls"
+        );
+
     if(upButton){
         upButton.hidden =
             heroDisplayMode === "hidden";
@@ -1564,6 +1909,46 @@ function applyHeroDisplayMode(){
             titleIsVisible ? "false" : "true"
         );
     }
+
+    if(bannerVariantControls){
+        const variants =
+            getHeroBannerVariants();
+
+        const currentVariant =
+            getCurrentHeroBannerVariant();
+
+        bannerVariantControls.hidden =
+            variants.length < 2;
+
+        bannerVariantControls
+            .querySelectorAll(
+                ".hero-banner-variant-cycle"
+            )
+            .forEach(button =>{
+
+                const previous =
+                    Number(
+                        button.dataset.direction
+                    ) < 0;
+
+                const label =
+                    `${
+                        previous
+                            ? "Bandeau précédent"
+                            : "Bandeau suivant"
+                    } — ${currentVariant.label}`;
+
+                button.setAttribute(
+                    "aria-label",
+                    label
+                );
+
+                button.setAttribute(
+                    "title",
+                    label
+                );
+            });
+    }
 }
 
 function getHeroFullImagePath(){
@@ -1575,9 +1960,12 @@ function getHeroFullImagePath(){
         return getHeroFullImageNoTitlePath();
     }
 
-    return licenceUniverseMode === "game"
-        ? HERO_GAME_FULL_IMAGE
-        : HERO_ANIME_FULL_IMAGE;
+    return getCurrentHeroBannerVariant().full ||
+        (
+            licenceUniverseMode === "game"
+                ? HERO_GAME_FULL_IMAGE
+                : HERO_ANIME_FULL_IMAGE
+        );
 }
 
 function setLicenceUniverseMode(mode){
@@ -2680,7 +3068,7 @@ function showNewLicencesModal(){
                             "
                         >
                             <img
-                                src="/cards/thumbs/Card ${escapeAttr(item.licence)}.webp"
+                                src="/images/Cards Licence/Thumbs/Card ${escapeAttr(item.licence)}.webp"
                                 alt="${escapeAttr(item.licence)}"
                                 loading="lazy"
                             >
@@ -3377,18 +3765,141 @@ function handleSidebarLicenceChange(checkbox){
 
 /* LICENCE CARDS */
 
-function expandLicenceCard(event,element){
+const mobileLicenceCardPathCache =
+    new Map();
+
+const MOBILE_LICENCE_CARD_ALIASES =
+    new Map([
+        [
+            normalizeLicenceKey(
+                "Bastard!! Heavy Metal, Dark Fantasy"
+            ),
+            "Bastard"
+        ]
+    ]);
+
+function probeLicenceCardImage(path){
+
+    return new Promise(resolve =>{
+
+        const probe =
+            new Image();
+
+        probe.onload = () =>
+            resolve(path);
+
+        probe.onerror = () =>
+            resolve("");
+
+        probe.src = path;
+    });
+}
+
+async function getMobileLicenceCardPath(
+    licence
+){
+
+    const key =
+        normalizeLicenceKey(licence);
+
+    if(
+        mobileLicenceCardPathCache.has(
+            key
+        )
+    ){
+        return mobileLicenceCardPathCache.get(
+            key
+        );
+    }
+
+    const fileNames = [
+        licence,
+        MOBILE_LICENCE_CARD_ALIASES.get(
+            key
+        )
+    ].filter(Boolean);
+
+    const extensions =
+        ["png","webp","jpg","jpeg"];
+
+    const candidates = [
+        ...new Set(
+            fileNames.flatMap(fileName =>
+                extensions.map(extension =>
+                    `/images/Cards Licence/Mobile/Card ${fileName} mobile.${extension}`
+                )
+            )
+        )
+    ];
+
+    for(const candidate of candidates){
+
+        const availablePath =
+            await probeLicenceCardImage(
+                candidate
+            );
+
+        if(availablePath){
+            mobileLicenceCardPathCache.set(
+                key,
+                availablePath
+            );
+
+            return availablePath;
+        }
+    }
+
+    mobileLicenceCardPathCache.set(
+        key,
+        ""
+    );
+
+    return "";
+}
+
+async function expandLicenceCard(
+    event,
+    element
+){
 
     event.preventDefault();
 
     event.stopPropagation();
 
-    const image =
+    const desktopImage =
         decodeURIComponent(
             element.dataset.image
         );
 
-    openModal(image,true);
+    if(
+        !window.matchMedia(
+            "(max-width: 768px)"
+        ).matches
+    ){
+        openModal(
+            desktopImage,
+            true
+        );
+
+        return false;
+    }
+
+    const licence =
+        decodeURIComponent(
+            element.dataset.licence || ""
+        );
+
+    const mobileImage =
+        licence
+            ? await getMobileLicenceCardPath(
+                licence
+            )
+            : "";
+
+    openModal(
+        mobileImage || desktopImage,
+        true
+    );
 
     return false;
 }
@@ -3638,10 +4149,6 @@ function buildLicenceCards(){
 
     const licences =
         sortedLicenceRows
-            .filter(r =>
-                !showLicenceFavorites ||
-                !(Number(r[1]) >= 1)
-            )
             .map(r => r[0]);
 
     const featuredLicences =
@@ -3708,7 +4215,7 @@ function buildLicenceCards(){
             >
 
                 <img
-                    src="/cards/thumbs/Card ${licence}.webp"
+                    src="/images/Cards Licence/Thumbs/Card ${licence}.webp"
                     alt="${escapeAttr(licence)}"
                     loading="${index < 12 ? "eager" : "lazy"}"
                     fetchpriority="${index < 8 ? "high" : "auto"}"
@@ -3737,7 +4244,8 @@ function buildLicenceCards(){
 
                 <span
                     class="licence-card-expand"
-                    data-image="${encodeURIComponent(`/cards/Card ${licence}.webp`)}"
+                    data-image="${encodeURIComponent(`/images/Cards Licence/Card ${licence}.webp`)}"
+                    data-licence="${encodeURIComponent(licence)}"
                     onclick="return expandLicenceCard(event,this);"
                 >
                     &#128269;
@@ -4710,7 +5218,7 @@ function normalizeText(text){
 
         .replace(/[\u0300-\u036f]/g,"")
 
-        .replace(/[â€™']/g,"'")
+        .replace(/[’']/g,"'")
 
         .trim()
 
@@ -6327,16 +6835,46 @@ let modalProductIndex = -1;
 let modalTouchStartX = 0;
 let modalTouchStartY = 0;
 let modalSwipeHandledAt = 0;
+let modalReturnsHeroToBanner = false;
 
 function ensureModalNavigationControls(){
 
     const modal =
         document.getElementById("imageModal");
 
+    if(!modal){
+        return;
+    }
+
     if(
-        !modal ||
-        modal.querySelector(".modal-nav")
+        !modal.querySelector(
+            ".modal-close"
+        )
     ){
+
+        const closeButton =
+            document.createElement("button");
+
+        closeButton.type = "button";
+        closeButton.className =
+            "modal-close";
+        closeButton.textContent = "\u00d7";
+        closeButton.title =
+            "Fermer l'image";
+        closeButton.setAttribute(
+            "aria-label",
+            "Fermer l'image"
+        );
+        closeButton.onclick = event =>{
+            event.preventDefault();
+            event.stopPropagation();
+            closeModal();
+        };
+
+        modal.appendChild(closeButton);
+    }
+
+    if(modal.querySelector(".modal-nav")){
         return;
     }
 
@@ -6426,13 +6964,16 @@ function loadModalImage(src){
 function openModal(
     src,
     allowZoom = false,
-    productRuntimeId = ""
+    productRuntimeId = "",
+    returnHeroToBanner = false
 ){
 
     ensureModalNavigationControls();
 
     modalZoomAllowed =
         Boolean(allowZoom);
+    modalReturnsHeroToBanner =
+        Boolean(returnHeroToBanner);
 
     if(productRuntimeId !== ""){
 
@@ -6523,6 +7064,11 @@ function scrollToModalProductCard(
 
 function closeModal(){
 
+    const shouldReturnHeroToBanner =
+        modalReturnsHeroToBanner;
+
+    modalReturnsHeroToBanner = false;
+
     resetModalZoom();
 
     const modalImg =
@@ -6540,6 +7086,17 @@ function closeModal(){
     modalProductItems = [];
     modalProductIndex = -1;
     updateModalNavigationVisibility();
+
+    if(shouldReturnHeroToBanner){
+        heroDisplayMode = "banner";
+
+        localStorage.setItem(
+            HERO_DISPLAY_MODE_STORAGE_KEY,
+            heroDisplayMode
+        );
+
+        applyHeroDisplayMode();
+    }
 }
 
 function isModalZoomEnabled(){
@@ -7222,7 +7779,11 @@ function getSelectedSidebarPromoChoice(
     ) || choices[0];
 }
 
-function cycleSidebarPromoVariant(event,mode){
+function cycleSidebarPromoVariant(
+    event,
+    mode,
+    direction = 1
+){
 
     event.preventDefault();
     event.stopPropagation();
@@ -7231,13 +7792,13 @@ function cycleSidebarPromoVariant(event,mode){
         mode === "home"
             ? (
                 licenceUniverseMode === "game"
-                    ? "/cards/Bouton Accueil Game.webp"
-                    : "/cards/Bouton Accueil Anime.webp"
+                    ? "/images/Cards Accueil/Bouton Accueil Game.webp"
+                    : "/images/Cards Accueil/Bouton Accueil Anime.webp"
             )
             : (
                 licenceUniverseMode === "game"
-                    ? "/cards/Bouton Catalogue Game.webp"
-                    : "/cards/Bouton Catalogue Anime.webp"
+                    ? "/images/Cards Catalogue/Bouton Catalogue Game.webp"
+                    : "/images/Cards Catalogue/Bouton Catalogue Anime.webp"
             );
 
     const choices =
@@ -7266,7 +7827,11 @@ function cycleSidebarPromoVariant(event,mode){
 
     const nextChoice =
         choices[
-            (currentIndex + 1) %
+            (
+                currentIndex +
+                direction +
+                choices.length
+            ) %
             choices.length
         ];
 
@@ -7320,8 +7885,8 @@ function updateSidebarPromoCard(mode, licence = ""){
 
         baseImage =
             licenceUniverseMode === "game"
-                ? "/cards/Bouton Accueil Game.webp"
-                : "/cards/Bouton Accueil Anime.webp";
+                ? "/images/Cards Accueil/Bouton Accueil Game.webp"
+                : "/images/Cards Accueil/Bouton Accueil Anime.webp";
 
         variants =
             SIDEBAR_PROMO_VARIANTS
@@ -7346,8 +7911,8 @@ function updateSidebarPromoCard(mode, licence = ""){
 
         baseImage =
             licenceUniverseMode === "game"
-                ? "/cards/Bouton Catalogue Game.webp"
-                : "/cards/Bouton Catalogue Anime.webp";
+                ? "/images/Cards Catalogue/Bouton Catalogue Game.webp"
+                : "/images/Cards Catalogue/Bouton Catalogue Anime.webp";
 
         variants =
             SIDEBAR_PROMO_VARIANTS
@@ -7374,7 +7939,7 @@ function updateSidebarPromoCard(mode, licence = ""){
     ){
 
         image =
-            `/cards/Card ${licence}.webp`;
+            `/images/Cards Licence/Card ${licence}.webp`;
 
         alt =
             licence;
@@ -7423,24 +7988,34 @@ function updateSidebarPromoCard(mode, licence = ""){
             ${
                 variants.length >= 2
                     ? `
-                        <span
-                            class="sidebar-promo-cycle"
-                            title="Card actuelle : ${escapeAttr(
-                                selectedChoice?.label ||
-                                "Simple"
-                            )} — afficher la suivante"
-                            onclick="return cycleSidebarPromoVariant(event,'${mode}');"
+                        <div
+                            class="sidebar-promo-cycle-controls"
                         >
-                            <svg
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
+                            <button
+                                type="button"
+                                class="sidebar-promo-cycle"
+                                title="Card précédente — actuelle : ${escapeAttr(
+                                    selectedChoice?.label ||
+                                    "Simple"
+                                )}"
+                                aria-label="Afficher la card précédente"
+                                onclick="return cycleSidebarPromoVariant(event,'${mode}',-1);"
                             >
-                                <path d="M20 7v5h-5"></path>
-                                <path d="M4 17v-5h5"></path>
-                                <path d="M6.1 9A7 7 0 0 1 18 6l2 1"></path>
-                                <path d="M17.9 15A7 7 0 0 1 6 18l-2-1"></path>
-                            </svg>
-                        </span>
+                                &#8592;
+                            </button>
+                            <button
+                                type="button"
+                                class="sidebar-promo-cycle"
+                                title="Card suivante — actuelle : ${escapeAttr(
+                                    selectedChoice?.label ||
+                                    "Simple"
+                                )}"
+                                aria-label="Afficher la card suivante"
+                                onclick="return cycleSidebarPromoVariant(event,'${mode}',1);"
+                            >
+                                &#8594;
+                            </button>
+                        </div>
                     `
                     : ""
             }

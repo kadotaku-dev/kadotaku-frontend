@@ -364,7 +364,7 @@ body{
 
     inset:0;
 
-    background-image:url("/bandeau_anime_fond.webp");
+    background-image:url("/images/Bandeaux/anime/nelliel_frieren_defaut/fond.webp?v=20260728-2");
 
     background-size:cover;
 
@@ -388,6 +388,27 @@ body{
     width:auto;
 
     object-fit:contain;
+}
+
+.hero-title{
+
+    position:absolute;
+
+    z-index:2;
+
+    left:50%;
+
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    height:100%;
+
+    width:auto;
+
+    object-fit:contain;
+
+    pointer-events:none;
 }
 
 /* TITRE */
@@ -574,6 +595,22 @@ body{
     top:43px;
 }
 
+.hero-banner-variant-controls{
+    position:absolute;
+    left:10px;
+    bottom:8px;
+    display:flex;
+    gap:5px;
+    pointer-events:auto;
+}
+
+.hero-banner-variant-cycle{
+    position:static;
+    width:25px;
+    height:25px;
+    font-size:15px;
+}
+
 .hero-display-title-toggle svg{
     width:18px;
     height:18px;
@@ -613,6 +650,7 @@ body.hero-mode-hidden .hero-spacer{
 
 body.hero-mode-hidden .hero-background,
 body.hero-mode-hidden .hero-overlay,
+body.hero-mode-hidden .hero-title,
 body.hero-mode-hidden .hero-full-image{
     display:none !important;
 }
@@ -656,7 +694,8 @@ body.hero-mode-full .hero-spacer{
 }
 
 body.hero-mode-full .hero-background,
-body.hero-mode-full .hero-overlay{
+body.hero-mode-full .hero-overlay,
+body.hero-mode-full .hero-title{
     display:none !important;
 }
 
@@ -1510,30 +1549,23 @@ body.hero-mode-full .hero-full-image{
 
 .sidebar-promo-cycle{
 
-    left:10px;
-
-    right:auto;
+    position:static;
+    width:30px;
+    height:30px;
+    padding:0;
+    border:1px solid rgba(255,255,255,0.28);
+    background:rgba(7,17,31,0.46);
+    font:700 16px/1 Arial,sans-serif;
+    opacity:0.72;
 }
 
-.sidebar-promo-cycle svg{
-
-    width:19px;
-
-    height:19px;
-
-    display:block;
-
-    fill:none;
-
-    stroke:currentColor;
-
-    stroke-width:2.2;
-
-    stroke-linecap:round;
-
-    stroke-linejoin:round;
-
-    pointer-events:none;
+.sidebar-promo-cycle-controls{
+    position:absolute;
+    left:10px;
+    bottom:10px;
+    z-index:20;
+    display:flex;
+    gap:5px;
 }
 
 .sidebar-promo-expand:hover,
@@ -2296,6 +2328,43 @@ body.hero-mode-full .hero-full-image{
     visibility:hidden;
 }
 
+.modal-close{
+    position:absolute;
+    top:max(18px,env(safe-area-inset-top));
+    right:max(18px,env(safe-area-inset-right));
+    z-index:5;
+    display:flex;
+    width:48px;
+    height:48px;
+    padding:0 0 4px;
+    border:2px solid rgba(255,255,255,0.78);
+    border-radius:50%;
+    background:rgba(15,23,42,0.9);
+    color:#fff;
+    box-shadow:
+        0 6px 20px rgba(0,0,0,0.48),
+        inset 0 0 0 1px rgba(255,255,255,0.08);
+    align-items:center;
+    justify-content:center;
+    font-family:Arial,sans-serif;
+    font-size:36px;
+    font-weight:400;
+    line-height:1;
+    cursor:pointer;
+    transition:
+        background 0.16s ease,
+        border-color 0.16s ease,
+        transform 0.16s ease;
+}
+
+.modal-close:hover,
+.modal-close:focus-visible{
+    border-color:#fff;
+    background:#db2777;
+    transform:scale(1.08);
+    outline:none;
+}
+
 .new-licences-modal{
 
     display:none;
@@ -2543,6 +2612,12 @@ body.hero-mode-full .hero-full-image{
     background:rgba(30,41,59,0.95);
 }
 
+.sidebar-promo-cycle:hover,
+.sidebar-promo-cycle:focus-visible{
+    background:rgba(7,17,31,0.78);
+    opacity:1;
+}
+
 .modal-nav-previous{
     left:24px;
 }
@@ -2568,6 +2643,15 @@ body.hero-mode-full .hero-full-image{
 }
 
 @media (max-width:768px){
+
+    .modal-close{
+        top:max(12px,env(safe-area-inset-top));
+        right:max(12px,env(safe-area-inset-right));
+        width:44px;
+        height:44px;
+        padding-bottom:3px;
+        font-size:33px;
+    }
 
     .modal.product-navigation-enabled img{
         touch-action:pan-y pinch-zoom;
