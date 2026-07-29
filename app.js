@@ -234,7 +234,8 @@ const HERO_BANNER_VARIANTS = {
             "game",
             "kassandra_lara_defaut",
             "defaut",
-            "Kassandra / Lara — Défaut"
+            "Kassandra / Lara — Défaut",
+            "20260730-game-title-complete"
         )
     ]
 };
