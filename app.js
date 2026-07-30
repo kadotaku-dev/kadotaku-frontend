@@ -217,10 +217,10 @@ const HERO_BANNER_VARIANTS = {
         ),
         createHeroBannerVariant(
             "anime",
-            "mikasa_casca_v3",
-            "mikasa-casca-v3",
-            "Mikasa / Casca — V3",
-            "20260729-2"
+            "mikasa_casca",
+            "mikasa-casca",
+            "Mikasa / Casca",
+            "20260730-mikasa-casca"
         )
     ],
     game: [
