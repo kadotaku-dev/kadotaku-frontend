@@ -272,6 +272,7 @@ const SIDEBAR_PROMO_VARIANTS = {
         })),
         catalogue: [
             ["frieren-fern","Frieren et Fern"],
+            ["himiko-toga-hawks","Himiko Toga et Hawks"],
             ["nami","Nami"],
             ["nelliel-harribel","Nelliel et Tier Harribel"],
             ["rem-ram","Rem et Ram"],
@@ -306,6 +307,7 @@ const SIDEBAR_PROMO_VARIANTS = {
             ["chun-li-cammy","Chun-Li et Cammy"],
             ["jinx-vi","Jinx et Vi"],
             ["lune-sciel","Lune et Sciel"],
+            ["lynette-lyney","Lynette et Lyney"],
             ["meryl-sniper-wolf","Meryl Silverburgh et Sniper Wolf"],
             ["nathan-chloe","Nathan Drake et Chloe Frazer"]
         ].map(([id,label]) => ({
