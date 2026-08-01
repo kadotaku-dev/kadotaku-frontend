@@ -250,6 +250,69 @@ const HERO_BANNER_VARIANTS = {
             "stussy-momo-v2",
             "Stussy / Momo V2",
             "20260801-stussy-momo-v2-1"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "stussy_momo_v3",
+            "stussy-momo-v3",
+            "Stussy / Momo V3",
+            "20260801-stussy-momo-v3-1"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "marin_temari",
+            "marin-temari",
+            "Marin / Temari",
+            "20260730-marin-temari-1"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "reze_shiro",
+            "reze-shiro",
+            "Reze / Shiro",
+            "20260730-reze-shiro-1"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "perona_maki",
+            "perona-maki",
+            "Perona / Maki",
+            "20260730-perona-maki-1"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "osaragi_yor",
+            "osaragi-yor",
+            "Osaragi / Yor — V1",
+            "20260801-osaragi-yor-3"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "osaragi_yor_v2",
+            "osaragi-yor-v2",
+            "Osaragi / Yor — V2",
+            "20260801-osaragi-yor-v2-2"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "osaragi_yor_v3",
+            "osaragi-yor-v3",
+            "Osaragi / Yor — V3",
+            "20260802-osaragi-yor-v3-3"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "robin_bulma",
+            "robin-bulma",
+            "Robin / Bulma",
+            "20260730-robin-bulma-1"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "lala_shinobu",
+            "lala-shinobu",
+            "Lala / Shinobu",
+            "20260730-lala-shinobu-1"
         )
     ],
     game: [
@@ -6188,10 +6251,16 @@ function switchHomeToCatalogueView(){
         return;
     }
 
-    const licenceCardsGrid =
-        document.getElementById(
-            "licenceCardsGrid"
-        );
+    const licenceCardsGrids =
+        [
+            "licenceCardsGrid",
+            "featuredLicenceCardsGrid",
+            "userFeaturedLicenceCardsGrid"
+        ]
+            .map(id =>
+                document.getElementById(id)
+            )
+            .filter(Boolean);
 
     const productGrid =
         document.getElementById(
@@ -6200,9 +6269,9 @@ function switchHomeToCatalogueView(){
 
     updateSidebarPromoCard("catalogue");
 
-    if(licenceCardsGrid){
-        licenceCardsGrid.style.display = "none";
-    }
+    licenceCardsGrids.forEach(grid =>{
+        grid.style.display = "none";
+    });
 
     if(productGrid){
         productGrid.style.display = "grid";
