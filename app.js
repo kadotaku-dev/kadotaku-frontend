@@ -227,14 +227,14 @@ const HERO_BANNER_VARIANTS = {
             "albedo_reika",
             "albedo-reika",
             "Albedo / Reika",
-            "20260801-albedo-reika-2"
+            "20260802-albedo-reika-6"
         ),
         createHeroBannerVariant(
             "anime",
             "albedo_reika_v2",
             "albedo-reika-v2",
             "Albedo / Reika — V2",
-            "20260801-albedo-reika-v2-1"
+            "20260802-albedo-reika-v2-5"
         ),
         createHeroBannerVariant(
             "anime",
