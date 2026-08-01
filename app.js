@@ -40,6 +40,7 @@ let animeRowByLicenceKey = new Map();
 let licenceGroupsFromSheet = new Map();
 let productsByLicenceKey = new Map();
 let licenceGroupCache = new Map();
+let productAddedDatesPromise = null;
 let menusBuilt = false;
 let menusBuilding = false;
 let topMenusPinnedLicenceKey = "";
@@ -2602,6 +2603,65 @@ function parseProductPrice(price){
     ) || 0;
 }
 
+function parseProductAddedDate(value){
+
+    const text =
+        String(value || "").trim();
+
+    if(!text){
+        return 0;
+    }
+
+    const frenchDate =
+        text.match(
+            /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/
+        );
+
+    const isoDate =
+        text.match(
+            /^(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})$/
+        );
+
+    const parts = frenchDate
+        ? [
+            Number(frenchDate[3]),
+            Number(frenchDate[2]),
+            Number(frenchDate[1])
+        ]
+        : isoDate
+            ? [
+                Number(isoDate[1]),
+                Number(isoDate[2]),
+                Number(isoDate[3])
+            ]
+            : null;
+
+    if(parts){
+        const [year,month,day] = parts;
+        const timestamp =
+            Date.UTC(year,month - 1,day);
+        const parsedDate =
+            new Date(timestamp);
+
+        if(
+            parsedDate.getUTCFullYear() === year &&
+            parsedDate.getUTCMonth() === month - 1 &&
+            parsedDate.getUTCDate() === day
+        ){
+            return timestamp;
+        }
+
+        return 0;
+    }
+
+    const timestamp =
+        Date.parse(text);
+
+    return Number.isFinite(timestamp)
+        ? timestamp
+        : 0;
+}
+
 function splitMultiValues(value){
 
     return String(value || "")
@@ -2620,6 +2680,11 @@ function prepareProduct(product,index){
 
     product._price =
         parseProductPrice(product.price);
+
+    product._dateAjoutSort =
+        parseProductAddedDate(
+            product.date_ajout
+        );
 
     product._persos =
         splitMultiValues(product.perso);
@@ -2678,8 +2743,64 @@ async function loadProductsFromSheet(){
         priority:row[6] || "",
         actif:row[7] || "",
         waifu:row[8] || "",
-        perso:row[9] || ""
+        perso:row[9] || "",
+        date_ajout:row[10] || ""
     }));
+}
+
+async function ensureProductAddedDates(){
+
+    if(
+        allProducts.some(product =>
+            product._dateAjoutSort > 0
+        )
+    ){
+        return;
+    }
+
+    if(productAddedDatesPromise){
+        return productAddedDatesPromise;
+    }
+
+    productAddedDatesPromise =
+        loadProductsFromSheet()
+            .then(sheetProducts =>{
+                const datesByUrl =
+                    new Map(
+                        sheetProducts
+                            .filter(product =>
+                                product.url &&
+                                product.date_ajout
+                            )
+                            .map(product =>[
+                                String(product.url).trim(),
+                                product.date_ajout
+                            ])
+                    );
+
+                allProducts.forEach(product =>{
+                    const dateAjout =
+                        product.date_ajout ||
+                        datesByUrl.get(
+                            String(product.url || "").trim()
+                        ) ||
+                        "";
+
+                    product.date_ajout =
+                        dateAjout;
+
+                    product._dateAjoutSort =
+                        parseProductAddedDate(
+                            dateAjout
+                        );
+                });
+            })
+            .catch(error =>{
+                productAddedDatesPromise = null;
+                throw error;
+            });
+
+    return productAddedDatesPromise;
 }
 
 function getLicenceGroup(licence){
@@ -5286,6 +5407,7 @@ function ensureSortOptions(){
 
     const expectedOptions = [
         ["random","Al&eacute;atoire"],
+        ["date-desc","Derniers ajouts"],
         ["price-asc","Prix croissant"],
         ["price-desc","Prix d&eacute;croissant"],
         ["licence-asc","Licence A &rarr; Z"],
@@ -5316,9 +5438,27 @@ function ensureSortOptions(){
     sortSelect.onchange = handleSortChange;
 }
 
-function handleSortChange(){
+async function handleSortChange(){
 
     userSelectedSort = true;
+
+    const sortSelect =
+        document.getElementById("sortSelect");
+
+    if(sortSelect?.value === "date-desc"){
+        sortSelect.disabled = true;
+
+        try{
+            await ensureProductAddedDates();
+        } catch(error){
+            console.error(
+                "Chargement des dates d'ajout impossible :",
+                error
+            );
+        } finally {
+            sortSelect.disabled = false;
+        }
+    }
 
     startSearch();
 }
@@ -6363,6 +6503,13 @@ function startSearch(){
 
         if(sort === "random"){
             return a._randomSort - b._randomSort;
+        }
+
+        if(sort === "date-desc"){
+            return (
+                b._dateAjoutSort -
+                a._dateAjoutSort
+            );
         }
 
         if(sort === "price-asc"){
