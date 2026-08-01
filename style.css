@@ -708,6 +708,19 @@ body.hero-mode-full .hero-full-image{
         display:none !important;
     }
 
+    .hero.mobile-horizontal-variant-swipe,
+    .sidebar-promo-card.mobile-horizontal-variant-swipe
+    .sidebar-promo-visual{
+        touch-action:pan-y;
+        user-select:none;
+        -webkit-user-select:none;
+    }
+
+    .hero.mobile-horizontal-variant-swipe img,
+    .sidebar-promo-card.mobile-horizontal-variant-swipe img{
+        -webkit-user-drag:none;
+    }
+
     body.hero-mode-banner .hero{
         height:112px !important;
     }

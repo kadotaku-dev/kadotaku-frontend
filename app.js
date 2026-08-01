@@ -1303,8 +1303,8 @@ function cycleHeroBannerVariant(
     direction = 1
 ){
 
-    event.preventDefault();
-    event.stopPropagation();
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
 
     const variants =
         getHeroBannerVariants();
@@ -7803,8 +7803,8 @@ function cycleSidebarPromoVariant(
     direction = 1
 ){
 
-    event.preventDefault();
-    event.stopPropagation();
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
 
     const baseImage =
         mode === "home"
@@ -7871,6 +7871,96 @@ function cycleSidebarPromoVariant(
     updateSidebarPromoCard(mode);
 
     return false;
+}
+
+function enableMobileHorizontalVariantSwipe(
+    element,
+    onSwipe
+){
+
+    if(
+        !element ||
+        element.dataset.mobileVariantSwipeReady === "true"
+    ){
+        return;
+    }
+
+    element.dataset.mobileVariantSwipeReady = "true";
+    element.classList.add("mobile-horizontal-variant-swipe");
+
+    let activePointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let suppressClickUntil = 0;
+
+    const resetGesture = ()=>{
+        activePointerId = null;
+        startX = 0;
+        startY = 0;
+    };
+
+    element.addEventListener("pointerdown",event =>{
+
+        if(
+            !window.matchMedia("(max-width: 768px)").matches ||
+            !event.isPrimary ||
+            event.target.closest(
+                "button, .sidebar-promo-expand"
+            )
+        ){
+            return;
+        }
+
+        activePointerId = event.pointerId;
+        startX = event.clientX;
+        startY = event.clientY;
+
+        try{
+            element.setPointerCapture(event.pointerId);
+        } catch(error){
+            // Pointer capture is optional for the gesture.
+        }
+    });
+
+    element.addEventListener("pointerup",event =>{
+
+        if(event.pointerId !== activePointerId){
+            return;
+        }
+
+        const deltaX = event.clientX - startX;
+        const deltaY = event.clientY - startY;
+        const horizontalDistance = Math.abs(deltaX);
+        const verticalDistance = Math.abs(deltaY);
+
+        resetGesture();
+
+        if(
+            horizontalDistance < 48 ||
+            horizontalDistance < verticalDistance * 1.25
+        ){
+            return;
+        }
+
+        event.preventDefault();
+        suppressClickUntil = Date.now() + 500;
+
+        onSwipe(deltaX < 0 ? 1 : -1);
+    });
+
+    element.addEventListener(
+        "pointercancel",
+        resetGesture
+    );
+
+    element.addEventListener("click",event =>{
+        if(Date.now() >= suppressClickUntil){
+            return;
+        }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    },true);
 }
 
 function updateSidebarPromoCard(mode, licence = ""){
@@ -8942,6 +9032,36 @@ document.addEventListener("DOMContentLoaded", function () {
     ensureHeroDisplayControls();
 
     const hero = document.querySelector(".hero");
+
+    enableMobileHorizontalVariantSwipe(
+        hero,
+        direction =>{
+            if(heroDisplayMode === "banner"){
+                cycleHeroBannerVariant(
+                    null,
+                    direction
+                );
+            }
+        }
+    );
+
+    enableMobileHorizontalVariantSwipe(
+        document.getElementById("sidebarPromoCard"),
+        direction =>{
+            const mode = sidebarPromoState.mode;
+
+            if(
+                mode === "home" ||
+                mode === "catalogue"
+            ){
+                cycleSidebarPromoVariant(
+                    null,
+                    mode,
+                    direction
+                );
+            }
+        }
+    );
 
     if (!hero) return;
 
