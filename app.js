@@ -242,6 +242,13 @@ const HERO_BANNER_VARIANTS = {
             "riyo-kikoru",
             "Riyo / Kikoru",
             "20260801-riyo-kikoru-3"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "stussy_momo_v2",
+            "stussy-momo-v2",
+            "Stussy / Momo V2",
+            "20260801-stussy-momo-v2-1"
         )
     ],
     game: [
