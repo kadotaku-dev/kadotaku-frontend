@@ -250,6 +250,13 @@ const HERO_BANNER_VARIANTS = {
             "stussy-momo-v2",
             "Stussy / Momo V2",
             "20260801-stussy-momo-v2-1"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "anya_eri",
+            "anya-eri",
+            "Anya / Eri",
+            "20260808-anya-eri-6"
         )
     ],
     game: [
