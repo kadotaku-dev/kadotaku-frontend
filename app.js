@@ -253,6 +253,34 @@ const HERO_BANNER_VARIANTS = {
         ),
         createHeroBannerVariant(
             "anime",
+            "osaragi_yor",
+            "osaragi-yor",
+            "Osaragi / Yor — V1",
+            "20260808-osaragi-yor-7"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "osaragi_yor_v2",
+            "osaragi-yor-v2",
+            "Osaragi / Yor — V2",
+            "20260808-osaragi-yor-v2-6"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "osaragi_yor_v3",
+            "osaragi-yor-v3",
+            "Osaragi / Yor — V3",
+            "20260808-osaragi-yor-v3-7"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "robin_bulma",
+            "robin-bulma",
+            "Robin / Bulma",
+            "20260808-robin-bulma-4"
+        ),
+        createHeroBannerVariant(
+            "anime",
             "anya_eri",
             "anya-eri",
             "Anya / Eri",
