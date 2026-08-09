@@ -294,6 +294,13 @@ const HERO_BANNER_VARIANTS = {
             "defaut",
             "Kassandra / Lara — Défaut",
             "20260730-game-title-complete"
+        ),
+        createHeroBannerVariant(
+            "game",
+            "kazuha_heizou",
+            "kazuha-heizou",
+            "Kazuha / Heizou",
+            "20260809-kazuha-heizou-game-1"
         )
     ]
 };
