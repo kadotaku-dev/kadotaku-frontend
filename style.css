@@ -591,6 +591,12 @@ body{
     bottom:8px;
 }
 
+.hero-banner-zoom-toggle{
+    top:8px;
+    right:auto;
+    left:10px;
+}
+
 .hero-display-title-toggle{
     top:43px;
 }
@@ -675,6 +681,11 @@ body.hero-mode-banner .hero{
 
 body.hero-mode-banner .hero-spacer{
     height:180px;
+}
+
+body.hero-mode-banner.hero-banner-zoomed .hero,
+body.hero-mode-banner.hero-banner-zoomed .hero-spacer{
+    height:306px;
 }
 
 body.hero-mode-banner .hero-full-image{

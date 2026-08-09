@@ -54,6 +54,9 @@ const LICENCE_UNIVERSE_STORAGE_KEY =
 const HERO_DISPLAY_MODE_STORAGE_KEY =
     "kadotaku_hero_display_mode";
 
+const HERO_BANNER_ZOOM_STORAGE_KEY =
+    "kadotaku_hero_banner_zoomed";
+
 const HERO_BANNER_VARIANT_STORAGE_PREFIX =
     "kadotaku_hero_banner_variant";
 
@@ -319,6 +322,11 @@ let heroDisplayMode =
     localStorage.getItem(
         HERO_DISPLAY_MODE_STORAGE_KEY
     ) || "banner";
+
+let heroBannerZoomed =
+    localStorage.getItem(
+        HERO_BANNER_ZOOM_STORAGE_KEY
+    ) === "true";
 const NEW_LICENCE_WINDOW_DAYS = 14;
 const DISMISSED_NEW_LICENCES_KEY =
     "kadotaku_dismissed_new_licences";
@@ -1691,6 +1699,13 @@ function ensureHeroDisplayControls(){
             >&#8595;</button>
             <button
                 type="button"
+                class="hero-display-button hero-banner-zoom-toggle"
+                aria-label="Zoomer le bandeau"
+                title="Zoomer le bandeau"
+                aria-pressed="false"
+            >+</button>
+            <button
+                type="button"
                 class="hero-display-button hero-display-title-toggle"
                 aria-label="Afficher la version sans titre"
                 title="Afficher la version sans titre"
@@ -1740,6 +1755,12 @@ function ensureHeroDisplayControls(){
                 )
             ){
                 toggleHeroFullTitle();
+            } else if(
+                event.target.closest(
+                    ".hero-banner-zoom-toggle"
+                )
+            ){
+                toggleHeroBannerZoom();
             } else if(
                 event.target.closest(
                     ".hero-display-up"
@@ -1876,6 +1897,22 @@ function stepHeroDisplayMode(direction){
     applyHeroDisplayMode();
 }
 
+function toggleHeroBannerZoom(){
+
+    if(heroDisplayMode !== "banner"){
+        return;
+    }
+
+    heroBannerZoomed = !heroBannerZoomed;
+
+    localStorage.setItem(
+        HERO_BANNER_ZOOM_STORAGE_KEY,
+        heroBannerZoomed ? "true" : "false"
+    );
+
+    applyHeroDisplayMode();
+}
+
 function applyHeroDisplayMode(){
 
     const hero =
@@ -1896,6 +1933,12 @@ function applyHeroDisplayMode(){
 
     document.body.classList.add(
         `hero-mode-${heroDisplayMode}`
+    );
+
+    document.body.classList.toggle(
+        "hero-banner-zoomed",
+        heroDisplayMode === "banner" &&
+            heroBannerZoomed
     );
 
     hero.dataset.displayMode =
@@ -1925,6 +1968,11 @@ function applyHeroDisplayMode(){
     const downButton =
         hero.querySelector(".hero-display-down");
 
+    const zoomButton =
+        hero.querySelector(
+            ".hero-banner-zoom-toggle"
+        );
+
     const titleToggleButton =
         hero.querySelector(
             ".hero-display-title-toggle"
@@ -1943,6 +1991,33 @@ function applyHeroDisplayMode(){
     if(downButton){
         downButton.hidden =
             heroDisplayMode === "full";
+    }
+
+    if(zoomButton){
+        zoomButton.hidden =
+            heroDisplayMode !== "banner";
+
+        zoomButton.textContent =
+            heroBannerZoomed ? "\u2212" : "+";
+
+        const zoomLabel = heroBannerZoomed
+            ? "R\u00e9tablir la taille normale du bandeau"
+            : "Zoomer le bandeau";
+
+        zoomButton.setAttribute(
+            "aria-label",
+            zoomLabel
+        );
+
+        zoomButton.setAttribute(
+            "title",
+            zoomLabel
+        );
+
+        zoomButton.setAttribute(
+            "aria-pressed",
+            heroBannerZoomed ? "true" : "false"
+        );
     }
 
     if(titleToggleButton){
