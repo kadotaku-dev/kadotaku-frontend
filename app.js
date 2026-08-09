@@ -438,6 +438,8 @@ let routeLicenceFilter = "";
 
 routeLicenceFilter = "";
 
+let staticLicenceSeoContent = null;
+
 function ensureExperimentalTopFilters(){
 
     const expectedSlogan =
@@ -3426,6 +3428,223 @@ function showProductsLoadingMessage(){
     `;
 }
 
+function captureStaticLicenceSeoContent(){
+
+    if(staticLicenceSeoContent){
+        return;
+    }
+
+    const loadingMessage =
+        document.querySelector(
+            "#productGrid .loading-message"
+        );
+
+    const title =
+        loadingMessage
+            ?.querySelector("h1")
+            ?.textContent
+            ?.trim() ||
+        document
+            .querySelector('meta[property="og:title"]')
+            ?.getAttribute("content")
+            ?.replace(/\s*\|\s*.*/, "")
+            ?.trim() ||
+        document.title
+            ?.replace(/\s*\|\s*.*/, "")
+            ?.trim();
+
+    const description =
+        loadingMessage
+            ?.querySelector("p")
+            ?.textContent
+            ?.trim() ||
+        document
+            .querySelector('meta[name="description"]')
+            ?.getAttribute("content")
+            ?.trim() ||
+        document
+            .querySelector('meta[property="og:description"]')
+            ?.getAttribute("content")
+            ?.trim();
+
+    if(!title || !description){
+        return;
+    }
+
+    staticLicenceSeoContent = {
+        title,
+        description
+    };
+}
+
+function syncLicenceSeoFooter(){
+
+    const productsContainer =
+        document.querySelector(
+            ".products"
+        );
+
+    if(!productsContainer){
+        return;
+    }
+
+    captureStaticLicenceSeoContent();
+
+    const canonicalUrl =
+        document
+            .querySelector('link[rel="canonical"]')
+            ?.getAttribute("href") ||
+        "";
+
+    const isStaticLicencePage =
+        canonicalUrl.includes(
+            "/licence/"
+        );
+
+    const licenceName =
+        String(
+            routeLicenceFilter ||
+            ""
+        ).trim();
+
+    if(
+        !isStaticLicencePage &&
+        !licenceName
+    ){
+        document
+            .getElementById("licenceSeoFooter")
+            ?.remove();
+        return;
+    }
+
+    let titleText =
+        staticLicenceSeoContent?.title ||
+        `Cadeaux ${licenceName}`;
+
+    let descriptionText =
+        staticLicenceSeoContent?.description ||
+        "";
+
+    if(!isStaticLicencePage && licenceName){
+
+        const persoCounts = new Map();
+        const persoLabels = new Map();
+
+        allResults.forEach(product =>{
+
+            const productPersos = new Map();
+
+            (
+                product._persos ||
+                splitMultiValues(product.perso)
+            ).forEach(perso =>{
+
+                const label =
+                    String(perso || "").trim();
+
+                const key =
+                    normalizeLicenceKey(label);
+
+                if(
+                    !label ||
+                    key === "divers" ||
+                    key === "personnage"
+                ){
+                    return;
+                }
+
+                productPersos.set(key,label);
+            });
+
+            productPersos.forEach((label,key) =>{
+                persoCounts.set(
+                    key,
+                    (persoCounts.get(key) || 0) + 1
+                );
+
+                if(!persoLabels.has(key)){
+                    persoLabels.set(key,label);
+                }
+            });
+        });
+
+        const persos = [...persoCounts.entries()]
+            .sort((a,b) =>
+                b[1] - a[1] ||
+                persoLabels
+                    .get(a[0])
+                    .localeCompare(
+                        persoLabels.get(b[0]),
+                        "fr",
+                        {sensitivity:"base"}
+                    )
+            )
+            .slice(0,5)
+            .map(([key]) =>
+                persoLabels.get(key)
+            );
+
+        descriptionText =
+            `Découvrez les meilleures idées cadeaux ${licenceName}` +
+            (
+                persos.length
+                    ? ` autour de ${persos.join(", ")}`
+                    : ""
+            ) +
+            " : figurines, goodies, mugs, peluches, posters et produits dérivés pour fans d'anime, de manga et d'univers otaku.";
+    }
+
+    if(!titleText || !descriptionText){
+        return;
+    }
+
+    let footer =
+        document.getElementById(
+            "licenceSeoFooter"
+        );
+
+    if(!footer){
+
+        footer =
+            document.createElement("section");
+
+        footer.id =
+            "licenceSeoFooter";
+
+        footer.className =
+            "licence-seo-footer";
+
+        const amazonDisclosure =
+            productsContainer.querySelector(
+                ".amazon-disclosure"
+            );
+
+        productsContainer.insertBefore(
+            footer,
+            amazonDisclosure || null
+        );
+    }
+
+    footer.innerHTML = "";
+
+    const heading =
+        document.createElement("h2");
+
+    heading.textContent =
+        titleText;
+
+    const paragraph =
+        document.createElement("p");
+
+    paragraph.textContent =
+        descriptionText;
+
+    footer.append(
+        heading,
+        paragraph
+    );
+}
+
 function showAmazonDisclosure(){
 
     if(!productsLoaded){
@@ -3441,6 +3660,8 @@ function showAmazonDisclosure(){
                 "is-ready"
             )
         );
+
+    syncLicenceSeoFooter();
 }
 
 function prepareInitialProductRoute(){
