@@ -256,6 +256,13 @@ const HERO_BANNER_VARIANTS = {
         ),
         createHeroBannerVariant(
             "anime",
+            "stussy_momo_v3",
+            "stussy-momo-v3",
+            "Stussy / Momo V3",
+            "20260801-stussy-momo-v3-1"
+        ),
+        createHeroBannerVariant(
+            "anime",
             "osaragi_yor",
             "osaragi-yor",
             "Osaragi / Yor — V1",
@@ -288,6 +295,41 @@ const HERO_BANNER_VARIANTS = {
             "anya-eri",
             "Anya / Eri",
             "20260808-anya-eri-6"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "kohaku_yoruichi",
+            "kohaku-yoruichi",
+            "Kohaku / Yoruichi",
+            "20260809-kohaku-yoruichi-3"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "hawk_kon_v1",
+            "hawk-kon-v1",
+            "Hawk / Kon — V1",
+            "20260809-hawk-kon-v1-5"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "hawk_kon_v2",
+            "hawk-kon-v2",
+            "Hawk / Kon — V2",
+            "20260809-hawk-kon-v2-5"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "tamaki_shana",
+            "tamaki-shana",
+            "Tamaki / Shana",
+            "20260809-tamaki-shana-7"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "miyu_ondine",
+            "miyu-ondine",
+            "Miu / Ondine",
+            "20260809-miyu-ondine-4"
         )
     ],
     game: [
