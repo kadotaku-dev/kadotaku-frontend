@@ -345,7 +345,7 @@ const HERO_BANNER_VARIANTS = {
             "kazuha_heizou",
             "kazuha-heizou",
             "Kazuha / Heizou",
-            "20260809-kazuha-heizou-game-1"
+            "20260812-kazuha-heizou-kirara-leg-1"
         )
     ]
 };
