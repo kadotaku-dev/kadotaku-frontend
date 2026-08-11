@@ -308,7 +308,7 @@ const HERO_BANNER_VARIANTS = {
             "hawk_kon_v1",
             "hawk-kon-v1",
             "Hawk / Kon — V1",
-            "20260809-hawk-kon-v1-5"
+            "20260812-hawk-kon-v1-exact-sprite-4"
         ),
         createHeroBannerVariant(
             "anime",
