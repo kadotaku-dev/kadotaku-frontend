@@ -756,6 +756,23 @@ body.hero-mode-full .hero-full-image{
     }
 }
 
+/* CADRAGE MOBILE ADAPTATIF DES BANDEAUX (retrait facile) */
+@media (max-width:520px){
+    body.hero-mode-banner .hero.hero-mobile-adaptive-framing{
+        height:var(--hero-mobile-adaptive-height,112px) !important;
+        min-height:var(--hero-mobile-adaptive-height,112px) !important;
+    }
+
+    body.hero-mode-banner
+    .hero.hero-mobile-adaptive-framing
+    .hero-overlay{
+        object-position:
+            var(--hero-mobile-people-position,50%)
+            center;
+    }
+}
+/* FIN CADRAGE MOBILE ADAPTATIF DES BANDEAUX */
+
 .main-title-wrapper .active-filters{
 
     display:flex;

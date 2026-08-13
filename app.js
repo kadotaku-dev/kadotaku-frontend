@@ -343,6 +343,93 @@ const HERO_BANNER_VARIANTS = {
     ]
 };
 
+/* CADRAGE MOBILE ADAPTATIF DES BANDEAUX (retrait facile)
+   Mettre l'interrupteur a false pour desactiver tout le module. */
+const MOBILE_HERO_FRAMING_ENABLED = true;
+const MOBILE_HERO_FRAMING_SOURCE_WIDTH = 1996;
+const MOBILE_HERO_FRAMING_SOURCE_HEIGHT = 312;
+const MOBILE_HERO_FRAMING_PROFILES = {
+    "anime:defaut": { cropWidth: 1100, focusX: 1010 },
+    "anime:nami-lucy-nuit": { cropWidth: 1080, focusX: 1005 },
+    "anime:nami-lucy-jour": { cropWidth: 1080, focusX: 1005 },
+    "anime:shinso-choso-nuit": { cropWidth: 1080, focusX: 1005 },
+    "anime:shinso-choso-jour": { cropWidth: 1080, focusX: 1005 },
+    "anime:sailormoon-sakura-nuit": { cropWidth: 1080, focusX: 1005 },
+    "anime:sailormoon-sakura-jour": { cropWidth: 1080, focusX: 1005 },
+    "anime:tohru-haruhi": { cropWidth: 1080, focusX: 1008 },
+    "anime:titan-colossal": { cropWidth: 1100, focusX: 998 },
+    "anime:mikasa-casca": { cropWidth: 1080, focusX: 1008 },
+    "anime:albedo-reika": { cropWidth: 1100, focusX: 1010 },
+    "anime:albedo-reika-v2": { cropWidth: 1100, focusX: 1010 },
+    "anime:riyo-kikoru": { cropWidth: 1040, focusX: 1010 },
+    "anime:stussy-momo-v2": { cropWidth: 1080, focusX: 1005 },
+    "anime:stussy-momo-v3": { cropWidth: 1080, focusX: 1005 },
+    "anime:osaragi-yor": { cropWidth: 1080, focusX: 1005 },
+    "anime:osaragi-yor-v2": { cropWidth: 1080, focusX: 1005 },
+    "anime:robin-bulma": { cropWidth: 1080, focusX: 1008 },
+    "anime:anya-eri": { cropWidth: 1080, focusX: 1008 },
+    "anime:kohaku-yoruichi": { cropWidth: 1080, focusX: 1008 },
+    "anime:hawk-kon-v1": { cropWidth: 1060, focusX: 1010 },
+    "anime:hawk-kon-v2": { cropWidth: 1060, focusX: 1010 },
+    "anime:tamaki-shana": { cropWidth: 1120, focusX: 1040 },
+    "anime:miyu-ondine": { cropWidth: 1080, focusX: 1008 },
+    "game:defaut": { cropWidth: 1100, focusX: 1010 },
+    "game:kazuha-heizou": { cropWidth: 1080, focusX: 1008 }
+};
+
+function applyMobileHeroFraming(){
+    const hero = document.querySelector(".hero");
+
+    if(!hero){
+        return;
+    }
+
+    hero.classList.remove("hero-mobile-adaptive-framing");
+    hero.style.removeProperty("--hero-mobile-adaptive-height");
+    hero.style.removeProperty("--hero-mobile-people-position");
+    delete hero.dataset.mobileFramingProfile;
+
+    if(!MOBILE_HERO_FRAMING_ENABLED){
+        return;
+    }
+
+    const heroBanner = getCurrentHeroBannerVariant();
+    const profileKey = `${licenceUniverseMode}:${heroBanner.id}`;
+    const profile = MOBILE_HERO_FRAMING_PROFILES[profileKey];
+
+    if(!profile){
+        return;
+    }
+
+    const cropWidth = Math.max(
+        1,
+        Math.min(
+            MOBILE_HERO_FRAMING_SOURCE_WIDTH,
+            profile.cropWidth
+        )
+    );
+    const availableTravel =
+        MOBILE_HERO_FRAMING_SOURCE_WIDTH - cropWidth;
+    const cropLeft = profile.focusX - cropWidth / 2;
+    const peoplePosition = availableTravel > 0
+        ? Math.max(0, Math.min(1, cropLeft / availableTravel))
+        : 0.5;
+    const heightRatio =
+        MOBILE_HERO_FRAMING_SOURCE_HEIGHT / cropWidth * 100;
+
+    hero.classList.add("hero-mobile-adaptive-framing");
+    hero.style.setProperty(
+        "--hero-mobile-adaptive-height",
+        `${heightRatio.toFixed(4)}vw`
+    );
+    hero.style.setProperty(
+        "--hero-mobile-people-position",
+        `${(peoplePosition * 100).toFixed(3)}%`
+    );
+    hero.dataset.mobileFramingProfile = profileKey;
+}
+/* FIN CADRAGE MOBILE ADAPTATIF DES BANDEAUX */
+
 const heroFullTitleVisible = {
     anime: true,
     game: true
@@ -1498,6 +1585,7 @@ function updateUniverseHero(){
         }
     }
 
+    applyMobileHeroFraming();
     applyHeroDisplayMode();
     checkHeroFullNoTitleAvailability();
     updateSiteThemeFromHero();
