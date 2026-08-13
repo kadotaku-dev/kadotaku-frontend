@@ -273,14 +273,7 @@ const HERO_BANNER_VARIANTS = {
             "osaragi_yor_v2",
             "osaragi-yor-v2",
             "Osaragi / Yor — V2",
-            "20260808-osaragi-yor-v2-6"
-        ),
-        createHeroBannerVariant(
-            "anime",
-            "osaragi_yor_v3",
-            "osaragi-yor-v3",
-            "Osaragi / Yor — V3",
-            "20260808-osaragi-yor-v3-7"
+            "20260813-osaragi-yor-v2-renamed-1"
         ),
         createHeroBannerVariant(
             "anime",
