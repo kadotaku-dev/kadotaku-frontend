@@ -1,4 +1,4 @@
-﻿const API_URL =
+const API_URL =
 "https://kadotaku-backend-production.up.railway.app";
 
 const animeSheetURL =
@@ -308,7 +308,7 @@ const HERO_BANNER_VARIANTS = {
             "hawk_kon_v2",
             "hawk-kon-v2",
             "Hawk / Kon — V2",
-            "20260809-hawk-kon-v2-5"
+            "20260811-hawk-kon-v2-complet-chopper-1"
         ),
         createHeroBannerVariant(
             "anime",
@@ -323,6 +323,69 @@ const HERO_BANNER_VARIANTS = {
             "miyu-ondine",
             "Miu / Ondine",
             "20260809-miyu-ondine-4"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "lala_misa",
+            "lala-misa",
+            "Lala / Misa",
+            "20260813-lala-misa-torso-6"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "shirahoshi_mizuho",
+            "shirahoshi-mizuho",
+            "Shirahoshi / Mizuho",
+            "20260813-shirahoshi-mizuho-zoom-6"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "yamcha_leorio",
+            "yamcha-leorio",
+            "Yamcha / Leorio",
+            "20260813-yamcha-leorio-framing-4"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "tsubasa_joe",
+            "tsubasa-joe",
+            "Tsubasa / Joe",
+            "20260814-tsubasa-joe-open-5"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "serena_dawn",
+            "serena-dawn",
+            "Serena / Dawn",
+            "20260814-serena-dawn-right-zoom-4"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "echidna_merlin",
+            "echidna-merlin",
+            "Echidna / Merlin",
+            "20260814-echidna-merlin-mirajane-5"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "san_chihiro",
+            "san-chihiro",
+            "San / Chihiro",
+            "20260814-san-chihiro-bodies-inward-5"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "nadia_saphir",
+            "nadia-saphir",
+            "Nadia / Princesse Saphir",
+            "20260814-nadia-saphir-actarus-arm-6"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "videl_nobara",
+            "videl-nobara",
+            "Videl / Nobara",
+            "20260814-videl-nobara-rebuilt-4"
         )
     ],
     game: [
@@ -373,6 +436,14 @@ const MOBILE_HERO_FRAMING_PROFILES = {
     "anime:hawk-kon-v2": { cropWidth: 1060, focusX: 1010 },
     "anime:tamaki-shana": { cropWidth: 1120, focusX: 1040 },
     "anime:miyu-ondine": { cropWidth: 1080, focusX: 1008 },
+    "anime:lala-misa": { cropWidth: 1080, focusX: 1008 },
+    "anime:shirahoshi-mizuho": { cropWidth: 1080, focusX: 1008 },
+    "anime:yamcha-leorio": { cropWidth: 1080, focusX: 1008 },
+    "anime:tsubasa-joe": { cropWidth: 1080, focusX: 1008 },
+    "anime:serena-dawn": { cropWidth: 1080, focusX: 1008 },
+    "anime:echidna-merlin": { cropWidth: 1080, focusX: 1008 },
+    "anime:san-chihiro": { cropWidth: 1080, focusX: 1008 },
+    "anime:nadia-saphir": { cropWidth: 1080, focusX: 1008 },
     "game:defaut": { cropWidth: 1100, focusX: 1010 },
     "game:kazuha-heizou": { cropWidth: 1080, focusX: 1008 }
 };
@@ -3906,6 +3977,8 @@ function prepareInitialProductRoute(){
 }
 
 function renderInitialProductsBeforeMenus(){
+
+    captureStaticLicenceSeoContent();
 
     if(isHomeRoute()){
         return;
@@ -9648,6 +9721,8 @@ document.addEventListener(
 );
 
 document.addEventListener("DOMContentLoaded", function () {
+    captureStaticLicenceSeoContent();
+
     placeFavoritesButtonForViewport();
 
     ensureHeroDisplayControls();
