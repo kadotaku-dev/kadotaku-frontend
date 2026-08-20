@@ -350,7 +350,7 @@ const HERO_BANNER_VARIANTS = {
             "tsubasa_joe",
             "tsubasa-joe",
             "Tsubasa / Joe",
-            "20260814-tsubasa-joe-open-5"
+            "20260820-tsubasa-joe-bottom-6"
         ),
         createHeroBannerVariant(
             "anime",
@@ -1607,7 +1607,69 @@ function cycleHeroBannerVariant(
     return false;
 }
 
-function updateUniverseHero(){
+const HERO_BANNER_PRELOAD_CACHE = new Map();
+let heroBannerRenderToken = 0;
+
+function preloadHeroBannerAsset(src){
+
+    if(!src){
+        return Promise.resolve();
+    }
+
+    const cached =
+        HERO_BANNER_PRELOAD_CACHE.get(src);
+
+    if(cached){
+        return cached;
+    }
+
+    const pending = new Promise((resolve,reject) =>{
+        const image = new Image();
+
+        image.onload = async () =>{
+            try{
+                if(typeof image.decode === "function"){
+                    await image.decode();
+                }
+            } catch(error){
+                // Le fichier est déjà chargé : le décodage synchrone suffira.
+            }
+
+            resolve(image);
+        };
+
+        image.onerror = () =>{
+            reject(
+                new Error(
+                    `Impossible de précharger ${src}`
+                )
+            );
+        };
+
+        image.src = src;
+    });
+
+    HERO_BANNER_PRELOAD_CACHE.set(
+        src,
+        pending
+    );
+
+    pending.catch(() =>{
+        if(
+            HERO_BANNER_PRELOAD_CACHE.get(src) ===
+            pending
+        ){
+            HERO_BANNER_PRELOAD_CACHE.delete(src);
+        }
+    });
+
+    return pending;
+}
+
+async function updateUniverseHero(){
+
+    const renderToken =
+        ++heroBannerRenderToken;
 
     const heroBackground =
         document.querySelector(".hero-background");
@@ -1623,6 +1685,30 @@ function updateUniverseHero(){
 
     const isGameUniverse =
         licenceUniverseMode === "game";
+
+    try{
+        await Promise.all([
+            preloadHeroBannerAsset(
+                heroBanner.fond
+            ),
+            preloadHeroBannerAsset(
+                heroBanner.calque
+            ),
+            preloadHeroBannerAsset(
+                heroBanner.titre
+            )
+        ]);
+    } catch(error){
+        console.warn(
+            "Le nouveau bandeau n'a pas pu être préchargé.",
+            error
+        );
+        return;
+    }
+
+    if(renderToken !== heroBannerRenderToken){
+        return;
+    }
 
     if(heroBackground){
         heroBackground.style.backgroundImage =
@@ -1660,6 +1746,17 @@ function updateUniverseHero(){
     applyHeroDisplayMode();
     checkHeroFullNoTitleAvailability();
     updateSiteThemeFromHero();
+
+    Promise.all([
+        preloadHeroBannerAsset(
+            heroBanner.full
+        ),
+        preloadHeroBannerAsset(
+            heroBanner.noTitle
+        )
+    ]).catch(() =>{
+        // Les versions complètes seront retentées à leur ouverture.
+    });
 }
 
 function getCurrentHeroThemePath(){
