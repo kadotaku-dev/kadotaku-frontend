@@ -1,4 +1,5 @@
 {
+  "trailingSlash": false,
   "redirects": [
     {
       "source": "/licence/2.5-dimensional-seduction",
@@ -16,6 +17,11 @@
       "type": 301
     },
     {
+      "source": "/licence/cautious-hero---the-hero-is-overpowered-but-overly-cautious",
+      "destination": "/licence/cautious-hero-the-hero-is-overpowered-but-overly-cautious",
+      "type": 301
+    },
+    {
       "source": "/licence/konosuba--god's-blessing-on-this-wonderful-world",
       "destination": "/licence/konosuba",
       "type": 301
@@ -26,12 +32,22 @@
       "type": 301
     },
     {
+      "source": "/licence/konosuba—god's-blessing-on-this-wonderful-world",
+      "destination": "/licence/konosuba",
+      "type": 301
+    },
+    {
       "source": "/licence/yaiba--samurai-legend",
       "destination": "/licence/yaiba-samurai-legend",
       "type": 301
     },
     {
       "source": "/licence/youjo-senki--saga-of-tanya-the-evil",
+      "destination": "/licence/youjo-senki-saga-of-tanya-the-evil",
+      "type": 301
+    },
+    {
+      "source": "/licence/youjo-senki---saga-of-tanya-the-evil",
       "destination": "/licence/youjo-senki-saga-of-tanya-the-evil",
       "type": 301
     },
