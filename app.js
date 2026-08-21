@@ -2596,6 +2596,77 @@ function slugLicence(licence){
         .replace(/-+/g,"-");
 }
 
+function licencePageUrl(licence){
+
+    return `/licence/${encodeURIComponent(slugLicence(licence))}`;
+}
+
+function findLicenceBySlug(slug){
+
+    const normalizedSlug =
+        String(slug || "")
+            .replace(/^\/+|\/+$/g,"")
+            .toLowerCase();
+
+    const row =
+        animeData.find(candidate =>
+            candidate[0] &&
+            slugLicence(candidate[0]) === normalizedSlug
+        );
+
+    return row?.[0] || "";
+}
+
+function syncLicenceUniverseForRoute(licence){
+
+    if(!licence){
+        return;
+    }
+
+    const universes =
+        getLicenceUniverses(licence);
+
+    if(universes.includes(licenceUniverseMode)){
+        return;
+    }
+
+    licenceUniverseMode =
+        universes[0] || "anime";
+
+    saveLicenceUniverseMode();
+    rebuildVisibleLicenceList();
+    refreshAllTypes();
+    updateUniverseSwitch();
+}
+
+function redirectLegacyLicenceQuery(){
+
+    if(window.location.pathname !== "/"){
+        return false;
+    }
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const legacyLicence =
+        params.get("licence");
+
+    if(!legacyLicence){
+        return false;
+    }
+
+    window.location.replace(
+        licencePageUrl(legacyLicence) +
+        window.location.hash
+    );
+
+    return true;
+}
+
+redirectLegacyLicenceQuery();
+
 function initAdminMode(){
 
     const params =
@@ -4068,12 +4139,15 @@ function prepareInitialProductRoute(){
         const slug =
             decodeURIComponent(path)
                 .split("/licence/")[1]
-                ?.toLowerCase();
+                ?.replace(/^\/+|\/+$/g,"")
+                .toLowerCase();
 
         routeLicenceFilter =
-            allAnime.find(licence =>
-                slugLicence(licence) === slug
-            ) || "";
+            findLicenceBySlug(slug);
+
+        syncLicenceUniverseForRoute(
+            routeLicenceFilter
+        );
 
         return;
     }
@@ -4994,7 +5068,7 @@ function buildLicenceCards(){
     ) => `
 
             <a
-                href="/?licence=${encodeURIComponent(licence)}"
+                href="${licencePageUrl(licence)}"
                 class="licence-card ${extraClass} ${showFavoriteControl ? "has-user-favorite-control" : ""}"
                 title="${escapeAttr(licence)}"
             >
@@ -6352,9 +6426,7 @@ function goToLicencePage(licence){
     const slug =
         slugLicence(licence);
 
-    const isLocalHost =
-        window.location.hostname === "127.0.0.1" ||
-        window.location.hostname === "localhost" ||
+    const isFileProtocol =
         window.location.protocol === "file:";
 
     const hasStaticLicencePage =
@@ -6364,12 +6436,12 @@ function goToLicencePage(licence){
         );
 
     window.location.href =
-        isLocalHost ||
+        isFileProtocol ||
         !hasStaticLicencePage
 
         ? `/?licence=${encodeURIComponent(licence)}`
 
-        : `/licence/${encodeURIComponent(slug)}`;
+        : licencePageUrl(licence);
 }
 
 function quickLicence(licence){
@@ -9172,12 +9244,13 @@ function handleLicenceRoute(){
         const slug =
             decodeURIComponent(path)
                 .split("/licence/")[1]
-                ?.toLowerCase();
+                ?.replace(/^\/+|\/+$/g,"")
+                .toLowerCase();
 
-        licence = allAnime.find(l =>
+        licence =
+            findLicenceBySlug(slug);
 
-            slugLicence(l) === slug
-        ) || "";
+        syncLicenceUniverseForRoute(licence);
     }
 
     if(licence){
