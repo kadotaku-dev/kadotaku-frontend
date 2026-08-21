@@ -4320,6 +4320,9 @@ async function loadData(){
 
     ensureSortOptions();
 
+    loadLicenceUniverseMode();
+    updateUniverseHero();
+
     console.time("TOTAL");
 
     console.time("LICENCES_FETCH");
@@ -4348,8 +4351,6 @@ async function loadData(){
 
     animeData =
         parsedAnimeData;
-
-    loadLicenceUniverseMode();
 
     rebuildAnimeIndexes();
 
