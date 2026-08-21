@@ -361,6 +361,20 @@ const HERO_BANNER_VARIANTS = {
         ),
         createHeroBannerVariant(
             "anime",
+            "asuna_claire",
+            "asuna-claire",
+            "Asuna / Claire — Armures",
+            "20260821-asuna-claire-armures-4"
+        ),
+        createHeroBannerVariant(
+            "anime",
+            "revy_faye",
+            "revy-faye",
+            "Revy / Faye — Armes à feu",
+            "20260821-revy-faye-armes-6"
+        ),
+        createHeroBannerVariant(
+            "anime",
             "serena_dawn",
             "serena-dawn",
             "Serena / Dawn",
@@ -448,6 +462,8 @@ const MOBILE_HERO_FRAMING_PROFILES = {
     "anime:yamcha-leorio": { cropWidth: 1080, focusX: 1008 },
     "anime:tsubasa-joe": { cropWidth: 1080, focusX: 1008 },
     "anime:ryo-meliodas": { cropWidth: 1080, focusX: 1008 },
+    "anime:asuna-claire": { cropWidth: 1080, focusX: 1008 },
+    "anime:revy-faye": { cropWidth: 1080, focusX: 1008 },
     "anime:serena-dawn": { cropWidth: 1080, focusX: 1008 },
     "anime:echidna-merlin": { cropWidth: 1080, focusX: 1008 },
     "anime:san-chihiro": { cropWidth: 1080, focusX: 1008 },
