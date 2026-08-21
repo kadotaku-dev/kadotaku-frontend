@@ -354,6 +354,13 @@ const HERO_BANNER_VARIANTS = {
         ),
         createHeroBannerVariant(
             "anime",
+            "ryo_meliodas",
+            "ryo-meliodas",
+            "Ryo / Meliodas — Pervers",
+            "20260821-ryo-meliodas-pervers-6"
+        ),
+        createHeroBannerVariant(
+            "anime",
             "serena_dawn",
             "serena-dawn",
             "Serena / Dawn",
@@ -440,6 +447,7 @@ const MOBILE_HERO_FRAMING_PROFILES = {
     "anime:shirahoshi-mizuho": { cropWidth: 1080, focusX: 1008 },
     "anime:yamcha-leorio": { cropWidth: 1080, focusX: 1008 },
     "anime:tsubasa-joe": { cropWidth: 1080, focusX: 1008 },
+    "anime:ryo-meliodas": { cropWidth: 1080, focusX: 1008 },
     "anime:serena-dawn": { cropWidth: 1080, focusX: 1008 },
     "anime:echidna-merlin": { cropWidth: 1080, focusX: 1008 },
     "anime:san-chihiro": { cropWidth: 1080, focusX: 1008 },
