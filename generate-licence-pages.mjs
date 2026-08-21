@@ -616,7 +616,7 @@ const sitemap = [
   "  </url>",
   ...sitemapLicences.flatMap((licence) => [
     "  <url>",
-    `    <loc>${licenceUrl(licence)}</loc>`,
+    `    <loc>${escapeHtml(licenceUrl(licence))}</loc>`,
     "  </url>",
   ]),
   "</urlset>",
