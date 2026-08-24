@@ -20,6 +20,7 @@ const LICENCE_GROUP_PREFIXES = {
   "Tales of Verse": "Tales of",
 };
 const LEGACY_LICENCE_REDIRECTS = {
+  "les-carnets-de-l'apoticaire": "les-carnets-de-l'apothicaire",
   "konosuba-god's-blessing-on-this-wonderful-world": "konosuba",
   "cautious-hero--the-hero-is-overpowered-but-overly-cautious":
     "cautious-hero-the-hero-is-overpowered-but-overly-cautious",

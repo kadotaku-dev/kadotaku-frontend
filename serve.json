@@ -2,6 +2,11 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/licence/les-carnets-de-l'apoticaire",
+      "destination": "/licence/les-carnets-de-l'apothicaire",
+      "type": 301
+    },
+    {
       "source": "/licence/2.5-dimensional-seduction",
       "destination": "/licence/2-5-dimensional-seduction",
       "type": 301

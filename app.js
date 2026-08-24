@@ -2612,9 +2612,21 @@ function slugLicence(licence){
         .replace(/-+/g,"-");
 }
 
+const LEGACY_LICENCE_SLUG_REDIRECTS = {
+    "les-carnets-de-l'apoticaire":
+        "les-carnets-de-l'apothicaire"
+};
+
+function canonicalLicenceSlug(licence){
+
+    const slug = slugLicence(licence);
+
+    return LEGACY_LICENCE_SLUG_REDIRECTS[slug] || slug;
+}
+
 function licencePageUrl(licence){
 
-    return `/licence/${encodeURIComponent(slugLicence(licence))}`;
+    return `/licence/${encodeURIComponent(canonicalLicenceSlug(licence))}`;
 }
 
 function findLicenceBySlug(slug){
@@ -2624,10 +2636,14 @@ function findLicenceBySlug(slug){
             .replace(/^\/+|\/+$/g,"")
             .toLowerCase();
 
+    const canonicalSlug =
+        LEGACY_LICENCE_SLUG_REDIRECTS[normalizedSlug] ||
+        normalizedSlug;
+
     const row =
         animeData.find(candidate =>
             candidate[0] &&
-            slugLicence(candidate[0]) === normalizedSlug
+            slugLicence(candidate[0]) === canonicalSlug
         );
 
     return row?.[0] || "";
