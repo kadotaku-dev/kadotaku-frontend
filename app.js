@@ -4001,10 +4001,6 @@ function syncLicenceSeoFooter(){
         return;
     }
 
-    let titleText =
-        staticLicenceSeoContent?.title ||
-        `Cadeaux ${licenceName}`;
-
     let descriptionText =
         staticLicenceSeoContent?.description ||
         "";
@@ -4078,7 +4074,7 @@ function syncLicenceSeoFooter(){
             " : figurines, goodies, mugs, peluches, posters et produits dérivés pour fans d'anime, de manga et d'univers otaku.";
     }
 
-    if(!titleText || !descriptionText){
+    if(!descriptionText){
         return;
     }
 
@@ -4111,22 +4107,13 @@ function syncLicenceSeoFooter(){
 
     footer.innerHTML = "";
 
-    const heading =
-        document.createElement("h2");
-
-    heading.textContent =
-        titleText;
-
     const paragraph =
         document.createElement("p");
 
     paragraph.textContent =
         descriptionText;
 
-    footer.append(
-        heading,
-        paragraph
-    );
+    footer.append(paragraph);
 }
 
 function showAmazonDisclosure(){
@@ -7488,6 +7475,32 @@ function updateSidebarTypeVisibility(){
         });
 }
 
+function productAnchorId(product){
+
+    const value =
+        JSON.stringify([
+            product?.url || "",
+            product?.name || ""
+        ]);
+
+    let hash = 2166136261;
+
+    for(
+        let index = 0;
+        index < value.length;
+        index++
+    ){
+        hash = Math.imul(
+            hash ^ value.charCodeAt(index),
+            16777619
+        );
+    }
+
+    return `produit-${
+        (hash >>> 0).toString(36)
+    }`;
+}
+
 function buildProductCardHTML(
     product,
     prioritizeImage = false
@@ -7529,6 +7542,7 @@ function buildProductCardHTML(
     return `
 
         <div
+            id="${productAnchorId(product)}"
             class="card"
             data-product-runtime-id="${escapeAttr(product._runtimeId)}"
         >
@@ -7586,7 +7600,38 @@ function buildProductCardHTML(
     `;
 }
 
+// A static index also lists active products excluded by the current filters.
+// Reveal only the explicitly requested card, without changing those filters.
+document.addEventListener("click", event =>{
+    const link = event.target.closest?.(".licence-product-index li a");
+    if(!link || event.defaultPrevented || event.button !== 0 ||
+        event.ctrlKey || event.metaKey || event.shiftKey || event.altKey){
+        return;
+    }
+
+    const targetId = link.hash.slice(1);
+    if(!targetId || document.getElementById(targetId)){
+        return;
+    }
+
+    const product = allProducts.find(item => productAnchorId(item) === targetId);
+    if(!product){
+        return;
+    }
+
+    document.getElementById("indexedProductSelection")?.remove();
+    const selection = document.createElement("section");
+    selection.id = "indexedProductSelection";
+    selection.className = "indexed-product-selection";
+    selection.setAttribute("aria-label", "Article demandé hors des filtres en cours");
+    selection.innerHTML = `<p class="indexed-product-selection-note">Article demandé — hors des filtres en cours</p>${buildProductCardHTML(product, true)}`;
+    link.closest(".licence-product-index").before(selection);
+    // Let the native fragment link scroll to and highlight the newly added card.
+});
+
 function displayProducts(){
+
+    document.getElementById("indexedProductSelection")?.remove();
 
     const grid =
         document.getElementById(

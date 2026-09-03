@@ -194,6 +194,119 @@ function productMatchesLicence(product, licence) {
   return licenceBelongsToGroup(product.licence, licence);
 }
 
+function isGroupedLicence(licence) {
+  const licenceKey = normaliseKey(licence);
+  return getLicenceGroup(licence).length > 0 || Object.keys(LICENCE_GROUP_PREFIXES).some(
+    (groupName) => normaliseKey(groupName) === licenceKey,
+  );
+}
+
+function productAnchorId(product) {
+  const value = JSON.stringify([product.url || "", product.name || ""]);
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index++) {
+    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  }
+
+  return `produit-${(hash >>> 0).toString(36)}`;
+}
+
+function buildProductIndexHtml(licence, products) {
+  // The static index belongs only to a base licence, never to an aggregate.
+  // Keep productMatchesLicence() for the existing grouped browsing/SEO copy.
+  if (isGroupedLicence(licence)) {
+    return "";
+  }
+
+  const licenceKey = normaliseKey(licence);
+  const productsByName = new Map();
+
+  for (const product of products) {
+    if (
+      product.actif !== "1" ||
+      normaliseKey(product.licence) !== licenceKey ||
+      !String(product.name || "").trim()
+    ) {
+      continue;
+    }
+
+    const name = String(product.name).trim();
+    const nameKey = normaliseKey(name);
+
+    if (!productsByName.has(nameKey)) {
+      productsByName.set(nameKey, {
+        name,
+        anchorId: productAnchorId(product),
+        type: String(product.type || "Autres articles").trim() || "Autres articles",
+      });
+    }
+  }
+
+  const uniqueProducts = [...productsByName.values()];
+
+  if (uniqueProducts.length === 0) {
+    return "";
+  }
+
+  const productsByType = new Map();
+
+  for (const product of uniqueProducts) {
+    const existingType = [...productsByType.keys()].find(
+      (type) => normaliseKey(type) === normaliseKey(product.type),
+    );
+    const type = existingType || product.type;
+
+    if (!productsByType.has(type)) {
+      productsByType.set(type, []);
+    }
+
+    productsByType.get(type).push(product);
+  }
+
+  const groupsHtml = [...productsByType.entries()]
+    .sort(([typeA], [typeB]) =>
+      typeA.localeCompare(typeB, "fr", { sensitivity: "base" }),
+    )
+    .map(([type, typeProducts]) => {
+      const itemsHtml = typeProducts
+        .sort((productA, productB) =>
+          productA.name.localeCompare(productB.name, "fr", { sensitivity: "base" }),
+        )
+        .map(
+          (product) =>
+            `                    <li><a href="#${escapeHtml(product.anchorId)}">${escapeHtml(product.name)}</a></li>`,
+        )
+        .join("\n");
+
+      return `            <section class="licence-product-index-group">
+                <h3>${escapeHtml(type)}</h3>
+                <ul>
+${itemsHtml}
+                </ul>
+            </section>`;
+    })
+    .join("\n");
+  const productCountLabel = `${uniqueProducts.length} produit${uniqueProducts.length > 1 ? "s" : ""}`;
+
+  return `
+        <section class="licence-product-index" aria-label="Produits ${escapeHtml(licence)} référencés">
+            <details>
+                <summary>
+                    <span>Voir les produits ${escapeHtml(licence)} référencés</span>
+                    <span class="licence-product-index-count">${productCountLabel}</span>
+                </summary>
+                <div class="licence-product-index-content">
+                    <h2>Les produits ${escapeHtml(licence)} actuellement référencés</h2>
+                    <p>Retrouvez ci-dessous les articles disponibles sur Kadotaku, regroupés par type.</p>
+                    <div class="licence-product-index-groups">
+${groupsHtml}
+                    </div>
+                </div>
+            </details>
+        </section>`;
+}
+
 function joinFrenchList(items) {
   if (items.length <= 1) {
     return items[0] || "";
@@ -390,7 +503,7 @@ function replaceTag(html, pattern, replacement) {
   return html.replace(pattern, replacement);
 }
 
-function buildLicenceHtml(baseHtml, licence, seoDataByLicence) {
+function buildLicenceHtml(baseHtml, licence, seoDataByLicence, products) {
   const title = pageTitle(licence);
   const description = pageDescription(licence, seoDataByLicence);
   const canonical = licenceUrl(licence);
@@ -442,6 +555,15 @@ function buildLicenceHtml(baseHtml, licence, seoDataByLicence) {
     /<div class="loading-message">\s*Chargement des produits\.\.\.\s*<\/div>/i,
     `<div class="loading-message">\n        <h1>Cadeaux ${escapeHtml(licence)}</h1>\n        <p>${escapeHtml(description)}</p>\n        Chargement des produits...\n    </div>`,
   );
+
+  const productIndexHtml = buildProductIndexHtml(licence, products);
+
+  if (productIndexHtml) {
+    html = html.replace(
+      /\s*<footer class="amazon-disclosure">/i,
+      `${productIndexHtml}\n\n        <footer class="amazon-disclosure">`,
+    );
+  }
 
   return html;
 }
@@ -514,11 +636,15 @@ const licences = rows
   .map((row) => row[0].trim());
 const onlyIndex = process.argv.indexOf("--only");
 const onlyLicence = onlyIndex >= 0 ? process.argv[onlyIndex + 1] : "";
+const onlyProductIndex = process.argv.includes("--product-index-only");
 const licencesToGenerate = onlyLicence
   ? licences.filter(
       (licence) => normaliseKey(licence) === normaliseKey(onlyLicence),
     )
   : licences;
+
+// A product-index refresh includes grouped pages too: rebuild them without
+// their former index, but do not regenerate the catalogue or clean up routes.
 
 if (onlyLicence && licencesToGenerate.length === 0) {
   throw new Error(`Licence active introuvable : ${onlyLicence}`);
@@ -530,12 +656,12 @@ for (const licence of licencesToGenerate) {
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(
     path.join(dir, "index.html"),
-    buildLicenceHtml(baseHtml, licence, seoDataByLicence),
+    buildLicenceHtml(baseHtml, licence, seoDataByLicence, products),
     "utf8",
   );
 }
 
-if (!onlyLicence) {
+if (!onlyLicence && !onlyProductIndex) {
   const catalogueDir = path.join(root, "catalogue");
   await fs.mkdir(catalogueDir, { recursive: true });
   await fs.writeFile(
@@ -627,4 +753,4 @@ const sitemap = [
 await fs.writeFile(path.join(root, "sitemap.xml"), sitemap, "utf8");
 
 console.log(`Pages licences générées : ${licencesToGenerate.length}`);
-console.log(`Page catalogue générée : ${onlyLicence ? 0 : 1}`);
+console.log(`Page catalogue générée : ${onlyLicence || onlyProductIndex ? 0 : 1}`);
